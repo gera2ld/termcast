@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install just
+        uses: extractions/setup-just@v4
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build CLI binaries
+        run: just build
+
+      - name: Create Release
+        run: |
+          VERSION="$(head -n1 packages/host/dist/version.txt)"
+          TAG="v${VERSION%-*}"
+          if gh release view "$TAG" --repo "${{ github.repository }}" &>/dev/null; then
+            gh release delete "$TAG" --yes --repo "${{ github.repository }}"
+          fi
+          gh release create "$TAG" --repo "${{ github.repository }}" \
+            --target "${{ github.sha }}" \
+            --title "termcast $VERSION" \
+            packages/host/dist/*.gz packages/host/dist/version.txt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

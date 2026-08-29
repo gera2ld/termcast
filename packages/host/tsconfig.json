@@ -1,0 +1,10 @@
+{
+  "extends": ["../../tsconfig.base.json"],
+  "compilerOptions": {
+    "paths": {
+      "@": ["./src"],
+      "@termcast/shared": ["../shared/src/index.ts"]
+    }
+  },
+  "exclude": ["dist", "public"]
+}
