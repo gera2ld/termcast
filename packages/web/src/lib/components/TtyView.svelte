@@ -8,7 +8,7 @@
   import { TtyBuffer } from "@termcast/shared";
   import { GlobalState } from "$lib/global.svelte";
   import "@xterm/xterm/css/xterm.css";
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, untrack } from "svelte";
   import TtyBar from "./TtyBar.svelte";
 
   const globalState = GlobalState.get();
@@ -25,7 +25,7 @@
   /** Guest-only socket; the owner shares one multiplexed socket via `globalState.ttySocket`. */
   let socket: WebSocket | undefined;
   let connecting = false;
-  /** Whether this view already (re)rendered and selected its tab. */
+  /** Whether this view already re-rendered its buffer into the terminal (once per mount). */
   let started = false;
 
   /** A guest joined with a share link (has a token); otherwise this is the owner. */
@@ -123,22 +123,39 @@
     if (active) term?.focus();
   });
 
+  /** Once per mount: re-render any buffered scrollback into the fresh terminal. The view
+   * stays mounted across tab switches (see tty/+layout.svelte), so this only runs for a
+   * genuinely fresh terminal, never when returning to an already-rendered tab. */
   $effect(() => {
     if (!term || started) return;
     started = true;
-    if (isGuest) {
-      connect();
-    } else {
-      // Re-render any buffered scrollback into the fresh terminal so returning to a tab
-      // shows its history without a server round-trip.
-      const buf = connView?.buffer;
-      if (buf?.size) {
-        term.reset();
-        for (const piece of buf.slice().pieces) term.write(piece);
-        if (canResize) term.fitAddon.fit();
+    if (isGuest) return;
+    const buf = connView?.buffer;
+    if (buf?.size) {
+      term.reset();
+      for (const piece of buf.slice().pieces) term.write(piece);
+      if (canResize) term.fitAddon.fit();
+    }
+  });
+
+  // Attach to the socket while active and detach when the user moves elsewhere.
+  $effect(() => {
+    if (!term) return;
+    if (active) {
+      if (isGuest) {
+        connect();
+      } else {
+        // select() reads the buffer's endOffset to compute `since`; that internal read must
+        // not make this effect re-run (and re-select) on every chunk that lands in the buffer.
+        untrack(() => globalState.ttySocket.select({ id: tab.id, onMessage: handleMessage }));
       }
       term.focus();
-      globalState.ttySocket.select({ id: tab.id, onMessage: handleMessage });
+    } else {
+      if (isGuest) {
+        detach();
+      } else {
+        globalState.ttySocket.leave(tab.id);
+      }
     }
   });
 
