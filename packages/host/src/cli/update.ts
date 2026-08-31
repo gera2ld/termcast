@@ -8,22 +8,87 @@ export interface UpdateOptions {
   baseName: string;
 }
 
-function githubFetch(url: string): Promise<Response> {
+interface ReleaseAsset {
+  id: number;
+  name: string;
+}
+
+interface UpdateSource {
+  getManifest(): Promise<string>;
+  getAsset(name: string): Promise<Response>;
+}
+
+function githubHeaders(accept?: string): Record<string, string> {
   const headers: Record<string, string> = {};
   if (process.env.GITHUB_TOKEN) {
     headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
   }
-  return fetch(url, { headers });
+  if (accept) {
+    headers.Accept = accept;
+  }
+  return headers;
+}
+
+function githubFetch(url: string, accept?: string): Promise<Response> {
+  return fetch(url, { headers: githubHeaders(accept) });
+}
+
+function createApiSource(repo: string): UpdateSource {
+  let assets: ReleaseAsset[] | null = null;
+  return {
+    async getManifest() {
+      const res = await githubFetch(`https://api.github.com/repos/${repo}/releases/latest`);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch version info (${res.status})`);
+      }
+      const release = (await res.json()) as { assets: ReleaseAsset[] };
+      assets = release.assets;
+      const version = assets.find((asset) => asset.name === "version.txt");
+      if (!version) {
+        throw new Error("Failed to fetch version info (404)");
+      }
+      const manifestRes = await githubFetch(
+        `https://api.github.com/repos/${repo}/releases/assets/${version.id}`,
+        "application/octet-stream",
+      );
+      if (!manifestRes.ok) {
+        throw new Error(`Failed to fetch version info (${manifestRes.status})`);
+      }
+      return manifestRes.text();
+    },
+    async getAsset(name) {
+      const asset = assets?.find((a) => a.name === name);
+      if (!asset) {
+        throw new Error(`Download failed (404) for ${name}`);
+      }
+      return githubFetch(
+        `https://api.github.com/repos/${repo}/releases/assets/${asset.id}`,
+        "application/octet-stream",
+      );
+    },
+  };
+}
+
+function createDirectSource(repo: string): UpdateSource {
+  const base = `https://github.com/${repo}/releases/latest/download`;
+  return {
+    async getManifest() {
+      const res = await githubFetch(`${base}/version.txt`);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch version info (${res.status})`);
+      }
+      return res.text();
+    },
+    getAsset(name) {
+      return githubFetch(`${base}/${name}`);
+    },
+  };
 }
 
 export async function runUpdate(options: UpdateOptions): Promise<void> {
   const { repo, currentVersion, baseName } = options;
-  const base = `https://github.com/${repo}/releases/latest/download`;
-  const manifestRes = await githubFetch(`${base}/version.txt`);
-  if (!manifestRes.ok) {
-    throw new Error(`Failed to fetch version info (${manifestRes.status})`);
-  }
-  const manifest = (await manifestRes.text()).trim().split("\n");
+  const source = process.env.GITHUB_TOKEN ? createApiSource(repo) : createDirectSource(repo);
+  const manifest = (await source.getManifest()).trim().split("\n");
   const remoteVersion = manifest[0].trim();
   if (remoteVersion === currentVersion) {
     console.log("already up to date");
@@ -37,7 +102,7 @@ export async function runUpdate(options: UpdateOptions): Promise<void> {
   console.log(`updating from ${currentVersion} to ${remoteVersion}`);
   const asset = `${baseName}-${process.platform}-${process.arch}.gz`;
   const expected = assets.get(asset);
-  const res = await githubFetch(`${base}/${asset}`);
+  const res = await source.getAsset(asset);
   if (!res.ok) {
     throw new Error(`Download failed (${res.status}) for ${asset}`);
   }
