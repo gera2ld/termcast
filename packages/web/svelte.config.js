@@ -11,7 +11,6 @@ const config = {
     alias: {
       "@": "./src",
       "@termcast/shared": "../shared/src/index.ts",
-      "@termcast/host": "../host/src/index.ts",
     },
   },
 };

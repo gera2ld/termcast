@@ -1,7 +1,7 @@
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
-import type { RouterClient } from "@orpc/server";
-import type { AppRouter } from "@termcast/host";
+import type { ContractRouterClient } from "@orpc/contract";
+import type { AppContract } from "@termcast/shared";
 
 const TOKEN_KEY = "termcast_token";
 
@@ -25,4 +25,4 @@ const link = new RPCLink({
   },
 });
 
-export const orpc: RouterClient<AppRouter> = createORPCClient(link);
+export const orpc = createORPCClient<ContractRouterClient<AppContract>>(link);

@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@gera2ld/common": "^0.1.2",
+    "@orpc/contract": "^1.15.0",
     "@simplewebauthn/server": "^13.3.2",
     "nanoid": "^6.0.1",
     "zod": "^4.4.3"

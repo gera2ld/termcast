@@ -84,3 +84,61 @@ export const cloudflareTunnelStateSchema = z.object({
   binaryPath: z.string().optional(),
 });
 export type CloudflareTunnelState = z.infer<typeof cloudflareTunnelStateSchema>;
+
+// ── oRPC contract output schemas ────────────────────────────────────────────────
+
+export const tokenInfoSchema = z.object({
+  token: z.string(),
+  expiresAt: z.number(),
+});
+export type TokenInfo = z.infer<typeof tokenInfoSchema>;
+
+export const settingsInfoSchema = z.object({
+  rpId: z.string(),
+  rpName: z.string(),
+  username: z.string(),
+  displayName: z.string(),
+  expectedOrigins: z.string().array(),
+  cloudflaredTunnel: z.boolean().optional(),
+  webhookTermStarted: z.string().optional(),
+});
+export type SettingsInfo = z.infer<typeof settingsInfoSchema>;
+
+export const shareTokenInfoSchema = z.object({
+  token: z.string(),
+  expireAt: z.number(),
+  allowWrite: z.boolean(),
+  maxConnections: z.number(),
+  connections: z.number(),
+  tabId: z.string().optional(),
+});
+export type ShareTokenInfo = z.infer<typeof shareTokenInfoSchema>;
+
+export const tabOpenInfoSchema = z.object({
+  id: z.string(),
+  commandId: z.string().nullish(),
+  args: z.string().array(),
+});
+export type TabOpenInfo = z.infer<typeof tabOpenInfoSchema>;
+
+export const webauthnOptionsSchema = z.object({
+  options: z.any(),
+});
+export type WebauthnOptions = z.infer<typeof webauthnOptionsSchema>;
+
+export const webauthnRegisterVerifySchema = z.object({
+  verified: z.boolean(),
+  token: z.string(),
+});
+export type WebauthnRegisterVerify = z.infer<typeof webauthnRegisterVerifySchema>;
+
+export const webauthnAuthVerifySchema = z.object({
+  verified: z.boolean(),
+  token: z.string().optional(),
+});
+export type WebauthnAuthVerify = z.infer<typeof webauthnAuthVerifySchema>;
+
+export const tunnelResolveSchema = z.object({
+  url: z.string().optional(),
+});
+export type TunnelResolve = z.infer<typeof tunnelResolveSchema>;

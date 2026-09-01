@@ -3,7 +3,7 @@ import { RPCHandler } from "@orpc/server/fetch";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { poweredBy } from "hono/powered-by";
-import type { InitialContext } from "./orpc/context";
+import type { InitialContext } from "@termcast/shared";
 import { router } from "./orpc/router";
 import type { HonoEnv } from "../core/types";
 import { setVerbose, logError } from "../core/log";
