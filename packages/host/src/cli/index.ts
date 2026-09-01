@@ -7,7 +7,7 @@ import { PORT } from "../core/config";
 import { setShareMode } from "../core/mode";
 import { signGrantToken } from "../services/grant";
 import { getDevices } from "../services/store";
-import { settings } from "../services/settings";
+import { getSettings } from "../services/settings";
 import { tabRegistry } from "../services/tab";
 import { startServer } from "./serve";
 import { startShareSession } from "./share";
@@ -107,6 +107,7 @@ export async function runCli(argv: string[], options: CliOptions = { development
 
 /** Re-opens the persisted tunnel after a restart, so sharing survives a reboot. */
 async function maybeStartTunnelFromSetting() {
+  const settings = getSettings();
   if (!settings.cloudflaredTunnel) return;
   const state = await startTunnel(PORT);
   if (state.enabled && state.url) console.log(`Public tunnel: ${state.url}`);

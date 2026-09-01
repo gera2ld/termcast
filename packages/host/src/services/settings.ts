@@ -1,4 +1,5 @@
-import { db } from "./db";
+import { once } from "es-toolkit";
+import { getDb } from "./db";
 import { generateSessionKey, settingsSchema, type Settings } from "@termcast/shared";
 
 const DEFAULTS = {
@@ -9,9 +10,9 @@ const DEFAULTS = {
 
 function write(key: string, value: string | null) {
   if (value === null) {
-    db.run("DELETE FROM settings WHERE key = ?", [key]);
+    getDb().run("DELETE FROM settings WHERE key = ?", [key]);
   } else {
-    db.run(
+    getDb().run(
       "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
       [key, value],
     );
@@ -19,7 +20,7 @@ function write(key: string, value: string | null) {
 }
 
 function load(): Settings {
-  const rows = db.query("SELECT key, value FROM settings").all() as Array<{
+  const rows = getDb().query("SELECT key, value FROM settings").all() as Array<{
     key: string;
     value: string;
   }>;
@@ -42,7 +43,7 @@ function load(): Settings {
   return parsed;
 }
 
-function persistSettings(source: Settings = settings) {
+function persistSettings(source: Settings = getSettings()) {
   const entries: Array<[string, unknown]> = [
     ["rpId", source.rpId],
     ["rpName", source.rpName],
@@ -58,10 +59,15 @@ function persistSettings(source: Settings = settings) {
   }
 }
 
-export const settings: Settings = load();
+/**
+ * Lazily-loaded settings. `load()` runs on first access and is then cached, so importing
+ * this module (e.g. for the `update` subcommand or `--help`) does not create the database.
+ */
+export const getSettings = once(load);
 
 /** The app needs an rpId to authenticate anything, so its absence means "not set up yet". */
 export function needsSetup() {
+  const settings = getSettings();
   return !settings.rpId;
 }
 
@@ -72,6 +78,7 @@ export function needsSetup() {
  * case and local dev on `localhost`). Returns "" to signal rejection.
  */
 export function getExpectedOrigin(origin: string): string {
+  const settings = getSettings();
   if (settings.expectedOrigins?.length) {
     return settings.expectedOrigins.includes(origin) ? origin : "";
   }
@@ -83,6 +90,7 @@ export function getExpectedOrigin(origin: string): string {
 }
 
 export function updateEditable(patch: Partial<Settings>) {
+  const settings = getSettings();
   if (patch.rpName !== undefined) settings.rpName = patch.rpName;
   if (patch.displayName !== undefined) settings.displayName = patch.displayName;
   if (patch.username !== undefined) settings.username = patch.username;
@@ -100,6 +108,7 @@ export interface SetupInput extends Partial<Settings> {
 
 /** The one place rpId can be written: first-run / reconfigure, gated by needsSetup. */
 export function configure(input: SetupInput) {
+  const settings = getSettings();
   settings.rpId = input.rpId;
   if (input.sessionEncryptionKey) settings.sessionEncryptionKey = input.sessionEncryptionKey;
   updateEditable(input);
@@ -108,6 +117,7 @@ export function configure(input: SetupInput) {
 
 /** Whether the cloudflared tunnel should restart when the server boots next. */
 export function setCloudflaredTunnel(on: boolean) {
+  const settings = getSettings();
   settings.cloudflaredTunnel = on;
   persistSettings();
   return settings.cloudflaredTunnel;

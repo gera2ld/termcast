@@ -2,7 +2,7 @@ import type { Command, Device } from "@termcast/shared";
 import { commandSchema, deviceSchema, formatArgs, serializeCredential } from "@termcast/shared";
 import { nanoid } from "nanoid";
 import { stripUndefined } from "../core/util";
-import { db } from "./db";
+import { getDb } from "./db";
 
 // Seeded on a fresh install (when no commands exist) so the app is usable immediately.
 const DEFAULT_COMMANDS: Command[] = [
@@ -16,7 +16,7 @@ const DEFAULT_COMMANDS: Command[] = [
 // ---- commands ----
 
 export function getCommands(): Command[] {
-  const commandRows = db
+  const commandRows = getDb()
     .query<
       {
         id: string;
@@ -36,7 +36,7 @@ export function getCommands(): Command[] {
 }
 
 export function getCommand(id: string) {
-  const commandRow = db
+  const commandRow = getDb()
     .query<
       {
         id: string;
@@ -54,7 +54,7 @@ export function addCommand(command: Command) {
     ...command,
     id: command.id || nanoid(8),
   };
-  db.run("INSERT INTO commands (id, label, args) VALUES (?, ?, ?)", [
+  getDb().run("INSERT INTO commands (id, label, args) VALUES (?, ?, ?)", [
     command.id,
     command.label,
     formatArgs(command.args),
@@ -67,7 +67,7 @@ export async function updateCommand(id: string, patch: Partial<Command>) {
   if (!command) throw new Error(`Command not found: ${id}`);
   delete patch.id;
   command = commandSchema.parse({ ...command, ...stripUndefined(patch) });
-  db.run("UPDATE commands SET label = ?, args = ? WHERE id = ?", [
+  getDb().run("UPDATE commands SET label = ?, args = ? WHERE id = ?", [
     command.label,
     formatArgs(command.args),
     id,
@@ -76,13 +76,13 @@ export async function updateCommand(id: string, patch: Partial<Command>) {
 }
 
 export async function removeCommand(id: string) {
-  db.run("DELETE FROM commands WHERE id = ?", [id]);
+  getDb().run("DELETE FROM commands WHERE id = ?", [id]);
 }
 
 // ---- Devices ----
 
 export function getDevices(): Device[] {
-  const deviceRows = db
+  const deviceRows = getDb()
     .query<
       {
         name: string;
@@ -105,7 +105,7 @@ export function getDevices(): Device[] {
 }
 
 export async function addDevice(device: Device) {
-  db.run(
+  getDb().run(
     "INSERT INTO devices (credential_id, name, created_at, last_used_at, credential) VALUES (?, ?, ?, ?, ?)",
     [
       device.credential.id,
@@ -119,7 +119,7 @@ export async function addDevice(device: Device) {
 }
 
 export async function removeDeviceById(id: string) {
-  db.run("DELETE FROM devices WHERE credential_id = ?", [id]);
+  getDb().run("DELETE FROM devices WHERE credential_id = ?", [id]);
 }
 
 export async function persistDevice(device: Device, patch: Partial<Device>) {
@@ -128,15 +128,18 @@ export async function persistDevice(device: Device, patch: Partial<Device>) {
     ...device,
     ...stripUndefined(patch),
   });
-  db.run("UPDATE devices SET name = ?, last_used_at = ?, credential = ? WHERE credential_id = ?", [
-    device.name,
-    device.lastUsedAt ?? null,
-    serializeCredential(device.credential),
-    device.credential.id,
-  ]);
+  getDb().run(
+    "UPDATE devices SET name = ?, last_used_at = ?, credential = ? WHERE credential_id = ?",
+    [
+      device.name,
+      device.lastUsedAt ?? null,
+      serializeCredential(device.credential),
+      device.credential.id,
+    ],
+  );
 }
 
 /** Called by the /setup confirm: wipes every registered passkey. */
 export async function clearDevices() {
-  db.run("DELETE FROM devices");
+  getDb().run("DELETE FROM devices");
 }

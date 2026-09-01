@@ -1,6 +1,6 @@
 import type { Context, Hono } from "hono";
 import { getConnInfo, upgradeWebSocket } from "hono/bun";
-import { settings } from "../services/settings";
+import { getSettings } from "../services/settings";
 import { logError } from "../core/log";
 import {
   type IWebSocketCallbacks,
@@ -77,6 +77,7 @@ export function setUpWebSocket(app: Hono<HonoEnv>) {
 
           if (type === "select") {
             try {
+              const settings = getSettings();
               const tabId = access.role === "owner" ? id : access.share!.payload.tabId;
               if (!tabId) throw new Error("This connection is missing its tab.");
 
@@ -191,7 +192,9 @@ export function setUpWebSocket(app: Hono<HonoEnv>) {
 
 async function notify(event: string, notiArgs: Record<string, string>) {
   if (event !== "term.started") return;
+  const settings = getSettings();
   const url = settings.webhookTermStarted;
+  if (!url) return;
   if (!url) return;
   try {
     const res = await fetch(url, {

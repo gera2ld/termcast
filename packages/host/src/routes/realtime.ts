@@ -5,7 +5,7 @@ import type { WSContext } from "hono/ws";
 import { bus } from "../core/events";
 import type { HonoEnv } from "../core/types";
 import { getTunnelState } from "../services/cloudflared";
-import { needsSetup, settings } from "../services/settings";
+import { needsSetup, getSettings } from "../services/settings";
 import { getCommands, getDevices } from "../services/store";
 import { tabRegistry } from "../services/tab";
 import { verifyOwnerToken } from "../services/token";
@@ -27,6 +27,7 @@ function toDeviceInfo(device: Device): DeviceInfo {
 }
 
 export async function buildSnapshot(): Promise<ServerState> {
+  const settings = getSettings();
   const publicSettings = { ...settings };
   delete publicSettings.sessionEncryptionKey;
   return {
@@ -74,6 +75,7 @@ bus.on("devices.remove", (id) => {
   broadcast({ type: "devices.remove", id });
 });
 bus.on("settings", () => {
+  const settings = getSettings();
   const publicSettings = { ...settings };
   delete publicSettings.sessionEncryptionKey;
   broadcast({ type: "settings", settings: publicSettings });

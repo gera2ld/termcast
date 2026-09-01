@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
-import { settings } from "./settings";
+import { getSettings } from "./settings";
 
 // Short-lived owner grant. Minted by the `termcast grant` CLI subcommand and exchanged
 // for a real owner token via auth.token. Signed with the DB-backed sessionEncryptionKey
@@ -10,6 +10,7 @@ const GRANT_TTL = "5m";
 const GRANT_TYPE = "owner_grant";
 
 function secret(): Uint8Array {
+  const settings = getSettings();
   return new TextEncoder().encode(settings.sessionEncryptionKey);
 }
 

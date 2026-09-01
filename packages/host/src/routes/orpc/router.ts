@@ -30,8 +30,8 @@ import { signGrantToken, verifyGrantToken } from "../../services/grant";
 import {
   configure,
   getExpectedOrigin,
+  getSettings,
   setCloudflaredTunnel,
-  settings,
   updateEditable,
 } from "../../services/settings";
 import {
@@ -68,6 +68,7 @@ export const router = impl.router({
   dashboard: {
     get: impl.dashboard.get.handler(async ({ context }) => {
       requireVerified(context);
+      const settings = getSettings();
       return {
         user: buildUserInfo(),
         tunnel: {
@@ -136,6 +137,7 @@ export const router = impl.router({
     registration: {
       options: impl.webauthn.registration.options.handler(async ({ context }) => {
         requireVerified(context);
+        const settings = getSettings();
         const opts: GenerateRegistrationOptionsOpts = {
           rpName: settings.rpName,
           rpID: settings.rpId,
@@ -191,6 +193,7 @@ export const router = impl.router({
       options: impl.webauthn.authentication.options.handler(async ({ context }) => {
         // NOTE: must be reachable without an owner token — this is the login path itself.
         const devices = getDevices();
+        const settings = getSettings();
         const opts: GenerateAuthenticationOptionsOpts = {
           rpID: settings.rpId,
           challenge: "challenge",
@@ -210,6 +213,7 @@ export const router = impl.router({
         const devices = getDevices();
         const expectedOrigin = getExpectedOrigin(context.request.headers.get("origin") ?? "");
         if (!expectedOrigin) return { verified: false, token: undefined };
+        const settings = getSettings();
         let verified = false;
         for (const device of devices) {
           try {
@@ -249,6 +253,7 @@ export const router = impl.router({
       updateEditable(input);
       bus.emit("settings");
       // Return updated settings
+      const settings = getSettings();
       return {
         settings: {
           rpId: settings.rpId,
