@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: {
       "/rpc": {
         target: "http://localhost:9998",
+        changeOrigin: true,
       },
       "/ws": {
         target: "http://localhost:9998",

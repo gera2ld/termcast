@@ -21,6 +21,7 @@
   let page = $state(0);
   let linking = $state(false);
   let linkUrl = $state("");
+  let registerError = $state<string | null>(null);
 
   const pageCount = $derived(Math.max(1, Math.ceil(globalState.devices.length / PAGE_SIZE)));
   const visible = $derived(globalState.devices.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE));
@@ -53,12 +54,14 @@
   function openRegister() {
     editing = undefined;
     passkeyName = "";
+    registerError = null;
     registering = true;
   }
 
   function closeForm() {
     editing = undefined;
     registering = false;
+    registerError = null;
   }
 
   async function handleSaveName() {
@@ -89,10 +92,15 @@
 
   async function handleRegisterClick() {
     if (!passkeyName.trim() || $loading) return;
+    registerError = null;
     closeForm();
-    await handleRegister(passkeyName.trim());
-    globalState.reloadDashboard();
-    toastState.show("Device registered.", "info");
+    try {
+      await handleRegister(passkeyName.trim());
+      globalState.reloadDashboard();
+      toastState.show("Device registered.", "info");
+    } catch (err) {
+      registerError = err instanceof Error ? err.message : "Registration failed";
+    }
   }
 
   async function handleDelete(device: DeviceInfo) {
@@ -192,6 +200,9 @@
                 </button>
               {/if}
             </div>
+            {#if registerError}
+              <div class="alert alert-error mt-2 max-w-md" role="alert">{registerError}</div>
+            {/if}
             {#if linkUrl}
               <p class="mt-2 text-sm">Open this link on the new device within 5 minutes.</p>
               <CopyLink value={linkUrl} class="mt-1" />

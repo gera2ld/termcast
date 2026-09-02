@@ -1,4 +1,8 @@
 import { oc } from "@orpc/contract";
+import type {
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+} from "@simplewebauthn/server";
 import { z } from "zod";
 import {
   cloudflareTunnelStateSchema,
@@ -12,7 +16,6 @@ import {
   tokenInfoSchema,
   tunnelResolveSchema,
   webauthnAuthVerifySchema,
-  webauthnOptionsSchema,
   webauthnRegisterVerifySchema,
 } from "./schemas";
 import { serverStateSchema, tabInfoSchema } from "./state";
@@ -33,14 +36,14 @@ export const contract = oc.router({
   },
   webauthn: {
     registration: {
-      options: oc.output(webauthnOptionsSchema),
+      options: oc.output(z.object({ options: z.custom<PublicKeyCredentialCreationOptionsJSON>() })),
       verify: oc
-        .input(z.object({ name: z.string(), attResp: z.any() }))
+        .input(z.object({ name: z.string(), attResp: z.unknown() }))
         .output(webauthnRegisterVerifySchema),
     },
     authentication: {
-      options: oc.output(webauthnOptionsSchema),
-      verify: oc.input(z.object({ authResp: z.any() })).output(webauthnAuthVerifySchema),
+      options: oc.output(z.object({ options: z.custom<PublicKeyCredentialRequestOptionsJSON>() })),
+      verify: oc.input(z.object({ authResp: z.unknown() })).output(webauthnAuthVerifySchema),
     },
   },
   settings: {

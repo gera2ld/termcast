@@ -13,6 +13,7 @@
   let tokenDialog: HTMLDialogElement | undefined = $state();
   let tokenValue = $state("");
   let tokenLoading = $state(false);
+  let authError = $state<string | null>(null);
 
   $effect(() => {
     if (globalState.user) {
@@ -26,8 +27,16 @@
   });
 
   async function handleLogIn() {
-    await handleAuthentication(false);
-    globalState.reloadDashboard();
+    authError = null;
+    try {
+      await handleAuthentication(false);
+      globalState.reloadDashboard();
+    } catch (err) {
+      authError =
+        err instanceof ORPCError
+          ? err.message || "Sign-in failed"
+          : (err as Error)?.message || "Sign-in failed";
+    }
   }
 
   async function useToken() {
@@ -71,6 +80,10 @@
     <button class="btn btn-ghost btn-sm" onclick={() => (tokenOpen = true)}>
       Use a one-time token
     </button>
+
+    {#if authError}
+      <div class="alert alert-error max-w-sm text-sm" role="alert">{authError}</div>
+    {/if}
   </div>
 </div>
 

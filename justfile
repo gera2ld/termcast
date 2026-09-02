@@ -10,41 +10,29 @@ docker-build:
 docker-push:
     docker compose push
 
-# Run the web frontend dev server (SvelteKit)
-dev-client:
-    cd packages/web && bun run dev
-
-# Run the host dev server (Bun + Hono)
-dev-host:
-    cd packages/host && bun run dev
-
-# Run both dev servers in parallel
+# Run the web dev server
 dev:
-    #!/usr/bin/env bash
-    trap 'kill 0' EXIT INT TERM
-    just dev-client &
-    just dev-host &
-    wait
+    cd packages/web && bun run --parallel dev dev:server
 
 # Build the web frontend
 build-client:
     cd packages/web && bun run build
 
-# Build the host for the given formats (e.g. `just build-host 'js exe'`)
-build-host formats:
-    rm -rf packages/host/dist
-    cd packages/host && bun run scripts/build.ts {{formats}}
+# Build the CLI for the given formats (e.g. `just build-cli 'js exe'`)
+build-cli formats:
+    rm -rf packages/cli/dist
+    cd packages/cli && bun run scripts/build.ts {{formats}}
 
-# Build the client and the host release distribution (embedded exes, gzipped, with version.txt manifest)
+# Build the client and the CLI release distribution (embedded exes, gzipped, with version.txt manifest)
 build: build-client
-    @just build-host exe
-    cd packages/host && bun run scripts/build.ts version
+    @just build-cli exe
+    cd packages/cli && bun run scripts/build.ts version
 
-# Build the client, the host, and zip it for macOS distribution
+# Build the client, the CLI, and zip it for macOS distribution
 bundle-macos: build-client
-    @just build-host exe
-    rm -f packages/host/dist/termcast-darwin-arm64.zip
-    zip -j packages/host/dist/termcast-darwin-arm64.zip packages/host/dist/termcast-darwin-arm64 packages/host/scripts/macos-unquarantine.sh
+    @just build-cli exe
+    rm -f packages/cli/dist/termcast-darwin-arm64.zip
+    zip -j packages/cli/dist/termcast-darwin-arm64.zip packages/cli/dist/termcast-darwin-arm64 packages/cli/scripts/macos-unquarantine.sh
 
 # Type-check and lint all packages (tsc/svelte-check + oxlint + oxfmt)
 check:

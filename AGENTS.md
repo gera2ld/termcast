@@ -4,10 +4,11 @@
 
 - **Runtime**: Bun
 - **Monorepo**: Bun workspaces with `packages/*`
-- **Host package** (`@termcast/host`): Bun server with HonoJS + oRPC (RPC protocol)
+- **CLI package** (`@termcast/cli`): Bun server with oRPC (RPC protocol) + WebSocket handling + CLI commands
 - **Web package** (`@termcast/web`): SvelteKit SPA
-- **Build**: Bun build for host, SvelteKit build for web
-- **TypeScript**: Strict mode, checked with `tsc --noEmit` (host) and `svelte-check` (web)
+- **Shared package** (`@termcast/shared`): Zod schemas, oRPC contract, types
+- **Build**: Bun build for CLI (standalone binary), SvelteKit build for web
+- **TypeScript**: Strict mode, checked with `tsc --noEmit` (cli) and `svelte-check` (web)
 - **Linting**: oxlint + oxfmt
 
 ## Conventions
@@ -34,13 +35,13 @@
 
 ### Package Structure
 
-- `@termcast/host`: Server package with CLI (`src/cli/`), oRPC procedures (`src/routes/orpc/`), WebSocket handling (`src/routes/`)
+- `@termcast/cli`: Server + CLI entry point — oRPC procedures (`src/routes/orpc/`), WebSocket handling (`src/routes/`), services (`src/services/`), standalone binary build
 - `@termcast/web`: SvelteKit frontend that imports shared types from `@termcast/shared`
-- Shared types are defined in `packages/shared/src/` (`types.ts`, `state.ts`, `schemas.ts`) and exported from `packages/shared/src/index.ts`
+- `@termcast/shared`: Zod schemas, oRPC contract definitions, types shared between cli and web
 
 ### Development
 
 - Run `just dev` to start both packages in development mode
 - Run `just check` to lint and type-check
 - Run `just build` to build both packages
-- Host builds to `packages/host/dist/`, web builds to `packages/web/build/`
+- CLI builds to `packages/cli/dist/`, web builds to `packages/web/build/`
