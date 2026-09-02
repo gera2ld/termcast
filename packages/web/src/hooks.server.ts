@@ -3,7 +3,7 @@ import type { WsData } from "$lib/server/handlers/terminal";
 import { tryUpgrade, websocket } from "$lib/server/ws";
 import { PORT } from "$lib/server/core/config";
 import { getSettings, needsSetup } from "$lib/server/services/settings";
-import { signGrantToken } from "$lib/server/services/grant";
+import { signGrantToken } from "@termcast/shared/server";
 import { startTunnel, stopTunnel } from "$lib/server/services/cloudflared";
 import { tabRegistry } from "$lib/server/services/tab";
 

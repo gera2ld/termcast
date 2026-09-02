@@ -1,4 +1,4 @@
-import { getDb } from "./db";
+import { getDb, ensureSessionKey } from "@termcast/shared/server";
 import { settingsSchema, type Settings } from "@termcast/shared";
 import { stripUndefined } from "../core/util";
 
@@ -20,14 +20,7 @@ function load(): Settings {
   }
   const parsed = settingsSchema.parse(raw);
   if (!parsed.sessionEncryptionKey) {
-    const key = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-    db.run("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", [
-      "sessionEncryptionKey",
-      JSON.stringify(key),
-    ]);
-    parsed.sessionEncryptionKey = key;
+    parsed.sessionEncryptionKey = ensureSessionKey();
   }
   return parsed;
 }

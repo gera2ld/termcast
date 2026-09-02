@@ -8,7 +8,6 @@ const config = {
     adapter: adapter(),
     alias: {
       "@": "./src",
-      "@termcast/shared": "../shared/src/index.ts",
     },
   },
 };

@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { signGrantToken } from "@termcast/shared/server";
 import { runUpdate } from "./update";
 
 const VERSION_INFO = process.env.TERMCAST_VERSION_INFO ?? "dev";
@@ -83,14 +84,9 @@ export async function runCli(argv: string[]) {
     .option("-t, --token", "Only print the grant token")
     .option("-u, --url", "Only print the openable URL")
     .action(async (opts: { token?: boolean; url?: boolean }) => {
-      await startServer();
       const port = process.env.PORT ?? "9998";
-      const res = await fetch(`http://127.0.0.1:${port}/api/grant`, { method: "POST" });
-      if (!res.ok) {
-        console.error(`Failed to create grant: ${res.status}`);
-        process.exit(1);
-      }
-      const { token, url } = (await res.json()) as { token: string; url: string };
+      const token = await signGrantToken();
+      const url = `http://localhost:${port}/?grant=${token}`;
       if (opts.token) console.log(token);
       else if (opts.url) console.log(url);
       else {

@@ -1,4 +1,4 @@
-import { getDb } from "./db";
+import { getDb } from "@termcast/shared/server";
 import type { Command, CredentialRecord, Device } from "@termcast/shared";
 import {
   credentialRecordSchema,

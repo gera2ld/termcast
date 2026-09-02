@@ -27,7 +27,7 @@ import {
   startTunnel,
   stopTunnel,
 } from "../services/cloudflared";
-import { signGrantToken, verifyGrantToken } from "../services/grant";
+import { signGrantToken, verifyGrantToken } from "@termcast/shared/server";
 import {
   configure,
   getExpectedOrigin,

@@ -1,7 +1,8 @@
 import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { DATA_DIR } from "../core/config";
+
+const DATA_DIR = process.env.DATA_DIR || process.cwd();
 
 let dbInstance: Database | null = null;
 
@@ -40,4 +41,20 @@ function initDb(): Database {
 export function getDb(): Database {
   if (!dbInstance) dbInstance = initDb();
   return dbInstance;
+}
+
+export function ensureSessionKey(): string {
+  const db = getDb();
+  const row = db.query("SELECT value FROM settings WHERE key = 'sessionEncryptionKey'").get() as
+    | { value: string }
+    | undefined;
+  if (row) return JSON.parse(row.value) as string;
+  const key = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  db.run("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", [
+    "sessionEncryptionKey",
+    JSON.stringify(key),
+  ]);
+  return key;
 }

@@ -1,5 +1,5 @@
 import type { ITermToken } from "../core/types";
-import { getDb } from "./db";
+import { getDb } from "@termcast/shared/server";
 
 interface TokenRow {
   token: string;

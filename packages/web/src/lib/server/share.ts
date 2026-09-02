@@ -1,7 +1,7 @@
 import { startTunnel } from "./services/cloudflared";
 import { tabRegistry } from "./services/tab";
 import { tokenProvider } from "./services/token";
-import { signGrantToken } from "./services/grant";
+import { signGrantToken } from "@termcast/shared/server";
 import type { IShareSession } from "./core/types";
 import { shareViewUrl } from "./core/share";
 

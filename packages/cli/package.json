@@ -12,6 +12,7 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
+    "@termcast/shared": "workspace:*",
     "commander": "^15.0.0"
   },
   "devDependencies": {
