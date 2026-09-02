@@ -54,10 +54,10 @@ export type DeviceInfo = z.infer<typeof deviceInfoSchema>;
 // Flat settings schema
 export const settingsSchema = z.object({
   // WebAuthn settings
-  rpId: z.string(),
-  rpName: z.string(),
-  username: z.string(),
-  displayName: z.string(),
+  rpId: z.string().default(""),
+  rpName: z.string().default(""),
+  username: z.string().default(""),
+  displayName: z.string().default(""),
   expectedOrigins: z.string().array().default([]),
 
   // Server settings — sessionEncryptionKey is the auth-token signing secret and is never
@@ -94,10 +94,10 @@ export const tokenInfoSchema = z.object({
 export type TokenInfo = z.infer<typeof tokenInfoSchema>;
 
 export const settingsInfoSchema = z.object({
-  rpId: z.string(),
-  rpName: z.string(),
-  username: z.string(),
-  displayName: z.string(),
+  rpId: z.string().default(""),
+  rpName: z.string().default(""),
+  username: z.string().default(""),
+  displayName: z.string().default(""),
   expectedOrigins: z.string().array(),
   cloudflaredTunnel: z.boolean().optional(),
   webhookTermStarted: z.string().optional(),
@@ -121,10 +121,10 @@ export const tabOpenInfoSchema = z.object({
 });
 export type TabOpenInfo = z.infer<typeof tabOpenInfoSchema>;
 
-export const webauthnOptionsSchema = z.object({
-  options: z.any(),
+export const rpIdShape = z.looseObject({
+  rpId: z.string().min(1).optional(),
+  rp: z.object({ id: z.string().min(1) }).optional(),
 });
-export type WebauthnOptions = z.infer<typeof webauthnOptionsSchema>;
 
 export const webauthnRegisterVerifySchema = z.object({
   verified: z.boolean(),
