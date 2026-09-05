@@ -81,6 +81,7 @@ export const router = impl.router({
           expectedOrigins: settings.expectedOrigins,
           cloudflaredTunnel: settings.cloudflaredTunnel,
           webhookTermStarted: settings.webhookTermStarted,
+          terminalTheme: settings.terminalTheme,
         },
         tabs: tabRegistry.list().map((tab) => ({
           id: tab.id,
@@ -295,6 +296,7 @@ export const router = impl.router({
           expectedOrigins: settings.expectedOrigins,
           cloudflaredTunnel: settings.cloudflaredTunnel,
           webhookTermStarted: settings.webhookTermStarted,
+          terminalTheme: settings.terminalTheme,
         },
       };
     }),

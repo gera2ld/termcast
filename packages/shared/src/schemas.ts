@@ -52,6 +52,9 @@ export const deviceInfoSchema = z.object({
 export type DeviceInfo = z.infer<typeof deviceInfoSchema>;
 
 // Flat settings schema
+export const terminalThemeSchema = z.enum(["auto", "light", "dark"]).default("dark");
+export type TerminalTheme = z.infer<typeof terminalThemeSchema>;
+
 export const settingsSchema = z.object({
   // WebAuthn settings
   rpId: z.string().default(""),
@@ -67,6 +70,9 @@ export const settingsSchema = z.object({
 
   // Webhooks
   webhookTermStarted: z.string().optional(),
+
+  // Terminal appearance
+  terminalTheme: terminalThemeSchema,
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
@@ -101,6 +107,7 @@ export const settingsInfoSchema = z.object({
   expectedOrigins: z.string().array(),
   cloudflaredTunnel: z.boolean().optional(),
   webhookTermStarted: z.string().optional(),
+  terminalTheme: terminalThemeSchema,
 });
 export type SettingsInfo = z.infer<typeof settingsInfoSchema>;
 

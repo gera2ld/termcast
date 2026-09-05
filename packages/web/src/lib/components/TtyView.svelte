@@ -4,8 +4,8 @@
   import { terminalThemes } from "$lib/themes";
   import type { ColorScheme, XTerm } from "$lib/xterm";
   import { b64decode } from "@gera2ld/common";
-  import type { TabInfo, WsServerMessage } from "@termcast/shared";
-  import { TtyBuffer } from "@termcast/shared";
+  import type { TabInfo, TerminalTheme, WsServerMessage } from "@termcast/shared";
+  import { terminalThemeSchema, TtyBuffer } from "@termcast/shared";
   import { GlobalState } from "$lib/global.svelte";
   import "@xterm/xterm/css/xterm.css";
   import { onDestroy, onMount, untrack } from "svelte";
@@ -20,8 +20,19 @@
   let ended = false;
   let lastActive = 0;
   let themeScheme: MediaQueryList;
-  const onSchemeChange = (event: MediaQueryListEvent) =>
-    term && (term.options.theme = terminalThemes[event.matches ? "dark" : "light"]);
+  /** Owner preference comes from dashboard settings; guests mirror it via /api/appearance. */
+  let guestPreference = $state<TerminalTheme>(terminalThemeSchema.parse(undefined));
+  function currentPreference(): TerminalTheme | undefined {
+    if (globalState.connections[tab.id]?.token) return guestPreference;
+    return globalState.settings?.terminalTheme;
+  }
+  function resolveScheme(pref: TerminalTheme, matches: boolean): ColorScheme {
+    return pref === "auto" ? (matches ? "dark" : "light") : pref;
+  }
+  const onSchemeChange = (event: MediaQueryListEvent) => {
+    if (!term || currentPreference() !== "auto") return;
+    term.options.theme = terminalThemes[event.matches ? "dark" : "light"];
+  };
   /** Guest-only socket; the owner shares one multiplexed socket via `globalState.ttySocket`. */
   let socket: WebSocket | undefined;
   let connecting = false;
@@ -138,6 +149,14 @@
     }
   });
 
+  // Apply the saved terminal theme live (e.g. changed in the Appearance card while open).
+  $effect(() => {
+    const pref = currentPreference();
+    if (term && themeScheme && pref) {
+      term.options.theme = terminalThemes[resolveScheme(pref, themeScheme.matches)];
+    }
+  });
+
   // Attach to the socket while active and detach when the user moves elsewhere.
   $effect(() => {
     if (!term) return;
@@ -217,11 +236,25 @@
     const { XTerm } = await import("$lib/xterm");
     const fontFamily = await loadingFonts;
     themeScheme = matchMedia("(prefers-color-scheme: dark)");
+    let initial = currentPreference();
+    if (globalState.connections[tab.id]?.token) {
+      try {
+        const res = await fetch("/api/appearance");
+        const data = (await res.json()) as { terminalTheme?: unknown };
+        const parsed = terminalThemeSchema.parse(data.terminalTheme);
+        guestPreference = parsed;
+        initial = parsed;
+      } catch {
+        // Keep the seeded default when the appearance endpoint is unreachable.
+      }
+    }
+    // Unreachable in practice: owners mount after the dashboard load, guests use the seed.
+    if (initial === undefined) return;
     const instance = new XTerm(
       {
         fontFamily: fontFamily ? `${fontFamily}, monospace` : undefined,
       },
-      (themeScheme.matches ? "dark" : "light") as ColorScheme,
+      resolveScheme(initial, themeScheme.matches),
     );
     instance.open(el);
     instance.onData((data) => send({ type: "data", data }));

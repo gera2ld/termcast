@@ -18,7 +18,7 @@
   <title>{pageTitle}</title>
 </svelte:head>
 
-<div class="relative h-full w-full">
+<div class="relative size-full">
   {#each globalState.tabs as tab (tab.id)}
     {@const active = tab.id === activeId}
     <div class="absolute inset-0 {active ? '' : 'hidden'}">

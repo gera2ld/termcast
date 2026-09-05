@@ -63,6 +63,7 @@ export function updateEditable(patch: {
   expectedOrigins?: string[];
   cloudflaredTunnel?: boolean;
   webhookTermStarted?: string;
+  terminalTheme?: "auto" | "light" | "dark";
 }): void {
   const db = getDb();
   const cleaned = stripUndefined(patch);

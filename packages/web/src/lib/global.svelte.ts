@@ -218,7 +218,7 @@ export class GlobalState {
     this.commands = this.commands.filter((cmd) => cmd.id !== id);
   }
 
-  async saveSetup(payload: Settings) {
+  async saveSetup(payload: Omit<Settings, "terminalTheme">) {
     await orpc.setup.configure(payload);
   }
 

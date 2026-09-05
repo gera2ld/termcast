@@ -13,6 +13,7 @@ import {
   settingsSchema,
   shareTokenInfoSchema,
   tabOpenInfoSchema,
+  terminalThemeSchema,
   tokenInfoSchema,
   tunnelResolveSchema,
   webauthnAuthVerifySchema,
@@ -55,6 +56,7 @@ export const contract = oc.router({
           username: z.string().optional(),
           expectedOrigins: z.string().array().optional(),
           webhookTermStarted: z.string().optional(),
+          terminalTheme: terminalThemeSchema.optional(),
         }),
       )
       .output(z.object({ settings: settingsInfoSchema })),

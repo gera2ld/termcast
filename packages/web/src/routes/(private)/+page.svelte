@@ -1,10 +1,12 @@
 <script lang="ts">
   import { GlobalState } from "$lib/global.svelte";
+  import Appearance from "./Appearance.svelte";
   import Commands from "./Commands.svelte";
   import DangerZone from "./DangerZone.svelte";
   import Devices from "./Devices.svelte";
-  import Settings from "./Settings.svelte";
   import SetupDialog from "./SetupDialog.svelte";
+  import Tunnel from "./Tunnel.svelte";
+  import WebAuthnSettings from "./WebAuthnSettings.svelte";
 
   const globalState = GlobalState.get();
   const needsSetup = $derived(globalState.user?.needsSetup);
@@ -38,8 +40,14 @@
     <section>
       <Devices />
     </section>
+    <section class="row-span-2">
+      <WebAuthnSettings />
+    </section>
     <section>
-      <Settings />
+      <Appearance />
+    </section>
+    <section>
+      <Tunnel />
     </section>
     <section>
       <DangerZone
