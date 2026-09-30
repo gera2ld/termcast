@@ -8,6 +8,11 @@ import {
 } from "@termcast/shared";
 import { nanoid } from "nanoid";
 
+const DEFAULT_COMMANDS: { label: string; args: string[] }[] = [
+  { label: "Zsh", args: ["zsh"] },
+  { label: "Bash", args: ["bash"] },
+];
+
 export function getCommands(): Command[] {
   const db = getDb();
   const rows = db.query("SELECT id, label, args FROM commands").all() as {
@@ -16,9 +21,15 @@ export function getCommands(): Command[] {
     args: string;
   }[];
   if (rows.length === 0) {
-    const id = nanoid(8);
-    db.run("INSERT INTO commands (id, label, args) VALUES (?, ?, ?)", [id, "Run Bash", "bash"]);
-    return [{ id, label: "Run Bash", args: ["bash"] }];
+    return DEFAULT_COMMANDS.map(({ label, args }) => {
+      const id = nanoid(8);
+      db.run("INSERT INTO commands (id, label, args) VALUES (?, ?, ?)", [
+        id,
+        label,
+        formatArgs(args),
+      ]);
+      return { id, label, args };
+    });
   }
   return rows.map((r) => ({
     id: r.id,
