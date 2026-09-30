@@ -2,6 +2,7 @@ FROM oven/bun:1 AS base
 WORKDIR /app
 
 FROM base AS builder
+RUN apt update && apt install -y git && rm -rf /var/lib/apt/lists/*
 ADD . /app
 RUN bun i
 RUN cd packages/web && bun run build
