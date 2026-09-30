@@ -1,16 +1,21 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { orpc, setToken } from "$lib/orpc-client";
-  import { ToastState } from "$lib/toasts.svelte";
-  import { handleAuthentication, loading } from "$lib/webauthn";
+  import { Alert, AlertDescription } from "$lib/components/ui/alert";
+  import { Button } from "$lib/components/ui/button";
+  import * as Dialog from "$lib/components/ui/dialog";
+  import * as Field from "$lib/components/ui/field";
+  import { Input } from "$lib/components/ui/input";
+  import { Spinner } from "$lib/components/ui/spinner";
   import { GlobalState } from "@/lib/global.svelte";
+  import { orpc, setToken } from "$lib/orpc-client";
+  import { handleAuthentication, loading } from "$lib/webauthn";
   import { ORPCError } from "@orpc/client";
+  import { toast } from "svelte-sonner";
+  import { CircleAlertIcon } from "@lucide/svelte";
 
   const globalState = GlobalState.get();
-  const toastState = ToastState.get();
 
   let tokenOpen = $state(false);
-  let tokenDialog: HTMLDialogElement | undefined = $state();
   let tokenValue = $state("");
   let tokenLoading = $state(false);
   let authError = $state<string | null>(null);
@@ -19,11 +24,6 @@
     if (globalState.user) {
       goto("/");
     }
-  });
-
-  $effect(() => {
-    if (tokenOpen && tokenDialog && !tokenDialog.open) tokenDialog.showModal();
-    else if (!tokenOpen && tokenDialog?.open) tokenDialog.close();
   });
 
   async function handleLogIn() {
@@ -59,7 +59,7 @@
       tokenOpen = false;
     } catch (err) {
       const msg = err instanceof ORPCError ? "Invalid or expired token" : (err as Error).message;
-      toastState.show(`Sign-in failed: ${msg}`, "error");
+      toast.error(`Sign-in failed: ${msg}`);
     } finally {
       tokenLoading = false;
     }
@@ -68,59 +68,69 @@
 
 <div class="mt-32 flex flex-col items-center gap-4 p-4">
   <div class="flex flex-col items-center gap-2">
-    <button class="btn btn-primary" disabled={$loading} onclick={handleLogIn}>
+    <Button disabled={$loading} onclick={handleLogIn}>
       {#if $loading}
-        <span class="loading loading-spinner loading-sm"></span>
+        <Spinner />
         Verifying...
       {:else}
         Verify Passkey
       {/if}
-    </button>
+    </Button>
 
-    <button class="btn btn-ghost btn-sm" onclick={() => (tokenOpen = true)}>
+    <Button variant="ghost" size="sm" onclick={() => (tokenOpen = true)}>
       Use a one-time token
-    </button>
+    </Button>
 
     {#if authError}
-      <div class="alert alert-error max-w-sm text-sm" role="alert">{authError}</div>
+      <Alert variant="destructive" class="max-w-sm">
+        <CircleAlertIcon />
+        <AlertDescription>{authError}</AlertDescription>
+      </Alert>
     {/if}
   </div>
 </div>
 
-<dialog class="modal" bind:this={tokenDialog}>
-  <div class="modal-box">
-    <h3 class="text-lg font-medium">Sign in with a one-time token</h3>
-    <p class="mt-2 text-sm opacity-70">
-      Run <code>termcast grant</code> on the server to get a one-time sign-in link or token. Paste it
-      below.
-    </p>
+<Dialog.Root bind:open={tokenOpen}>
+  <Dialog.Content>
+    <Dialog.Header>
+      <Dialog.Title>Sign in with a one-time token</Dialog.Title>
+      <Dialog.Description>
+        Run <code>termcast grant</code> on the server to get a one-time sign-in link or token. Paste it
+        below.
+      </Dialog.Description>
+    </Dialog.Header>
+
     <form
-      class="mt-4 flex flex-col gap-3"
       onsubmit={(e) => {
         e.preventDefault();
         useToken();
       }}
     >
-      <input
-        class="input input-bordered w-full"
-        bind:value={tokenValue}
-        placeholder="One-time token or sign-in link"
-        required
-      />
-      <div class="flex justify-end gap-2">
-        <button class="btn btn-ghost" type="button" onclick={() => (tokenOpen = false)}>
-          Cancel
-        </button>
-        <button class="btn btn-primary" type="submit" disabled={tokenLoading}>
-          {#if tokenLoading}
-            <span class="loading loading-spinner loading-sm"></span>
-            Signing in...
-          {:else}
-            Sign in
-          {/if}
-        </button>
-      </div>
+      <Field.Group>
+        <Field.Field>
+          <Field.Label for="login-token" class="sr-only">One-time token or sign-in link</Field.Label
+          >
+          <Input
+            id="login-token"
+            bind:value={tokenValue}
+            placeholder="One-time token or sign-in link"
+            required
+          />
+        </Field.Field>
+        <div class="flex justify-end gap-2">
+          <Button variant="outline" type="button" onclick={() => (tokenOpen = false)}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={tokenLoading}>
+            {#if tokenLoading}
+              <Spinner />
+              Signing in...
+            {:else}
+              Sign in
+            {/if}
+          </Button>
+        </div>
+      </Field.Group>
     </form>
-  </div>
-  <form method="dialog" class="modal-backdrop"><button>close</button></form>
-</dialog>
+  </Dialog.Content>
+</Dialog.Root>

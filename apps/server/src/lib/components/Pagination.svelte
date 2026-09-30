@@ -3,31 +3,44 @@
 </script>
 
 <script lang="ts">
+  import * as Pagination from "$lib/components/ui/pagination";
+
   let {
     page,
     pageCount,
     onchange,
   }: { page: number; pageCount: number; onchange: (page: number) => void } = $props();
+
+  // bits-ui counts items and 1-indexes pages; this wrapper is 0-indexed.
+  const count = $derived(pageCount * PAGE_SIZE);
 </script>
 
 {#if pageCount > 1}
-  <div class="join mt-2">
-    <button
-      class="join-item btn btn-sm"
-      disabled={page === 0}
-      onclick={() => onchange(page - 1)}
-      aria-label="Previous page"
-    >
-      «
-    </button>
-    <span class="join-item btn btn-sm btn-disabled">Page {page + 1} of {pageCount}</span>
-    <button
-      class="join-item btn btn-sm"
-      disabled={page >= pageCount - 1}
-      onclick={() => onchange(page + 1)}
-      aria-label="Next page"
-    >
-      »
-    </button>
-  </div>
+  <Pagination.Root
+    {count}
+    perPage={PAGE_SIZE}
+    page={page + 1}
+    onPageChange={(next) => onchange(next - 1)}
+    class="mt-2"
+  >
+    {#snippet children({ pages, currentPage })}
+      <Pagination.Content>
+        <Pagination.Item>
+          <Pagination.Previous />
+        </Pagination.Item>
+        {#each pages as p (p.key)}
+          <Pagination.Item>
+            {#if p.type === "page"}
+              <Pagination.Link page={p} isActive={p.value === currentPage} />
+            {:else}
+              <Pagination.Ellipsis />
+            {/if}
+          </Pagination.Item>
+        {/each}
+        <Pagination.Item>
+          <Pagination.Next />
+        </Pagination.Item>
+      </Pagination.Content>
+    {/snippet}
+  </Pagination.Root>
 {/if}

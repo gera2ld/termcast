@@ -1,21 +1,29 @@
 <script lang="ts">
   import CopyLink from "$lib/components/CopyLink.svelte";
   import Pagination, { PAGE_SIZE } from "$lib/components/Pagination.svelte";
+  import { Alert, AlertDescription } from "$lib/components/ui/alert";
+  import * as AlertDialog from "$lib/components/ui/alert-dialog";
+  import { Button } from "$lib/components/ui/button";
+  import * as Field from "$lib/components/ui/field";
+  import { Input } from "$lib/components/ui/input";
+  import * as Table from "$lib/components/ui/table";
   import { GlobalState } from "$lib/global.svelte";
   import { orpc } from "$lib/orpc-client";
-  import { ToastState } from "$lib/toasts.svelte";
   import { handleRegister, loading, registerRequested } from "$lib/webauthn";
+  import { toast } from "svelte-sonner";
+  import { CircleAlertIcon } from "@lucide/svelte";
   import type { DeviceInfo } from "@termcast/shared";
 
   const globalState = GlobalState.get();
-  const toastState = ToastState.get();
 
   let editing = $state<DeviceInfo | undefined>(undefined);
+  let deleting = $state<DeviceInfo | undefined>(undefined);
 
   function fmt(value?: Date | string | null): string {
     return value ? new Date(value).toLocaleString() : "—";
   }
   let name = $state("");
+  let registerInput = $state<HTMLInputElement | null>(null);
   let registering = $state(false);
   let passkeyName = $state("");
   let page = $state(0);
@@ -33,12 +41,11 @@
   });
 
   // SvelteKit resets focus once a navigation completes, which can land after this form
-  // is mounted. Its reset targets the element carrying `autofocus`, so setting the
-  // attribute keeps focus here no matter which of the two happens last.
-  function autofocus(node: HTMLInputElement) {
-    node.autofocus = true;
-    node.focus();
-  }
+  // is mounted. Its reset targets the element carrying `autofocus`, so the attribute keeps
+  // focus here no matter which of the two happens last.
+  $effect(() => {
+    registerInput?.focus();
+  });
 
   function changePage(next: number) {
     closeForm();
@@ -74,7 +81,7 @@
     await orpc.devices.rename({ id: editing.id, name: newName });
     editing.name = newName;
     globalState.reloadDashboard();
-    toastState.show("Device renamed.", "info");
+    toast.info("Device renamed.");
     closeForm();
   }
 
@@ -84,7 +91,7 @@
       const { token } = await orpc.auth.link();
       linkUrl = `${window.location.origin}/?grant=${token}`;
     } catch (err) {
-      toastState.show(`Failed to create a link: ${(err as Error).message}`, "error");
+      toast.error(`Failed to create a link: ${(err as Error).message}`);
     } finally {
       linking = false;
     }
@@ -97,121 +104,155 @@
     try {
       await handleRegister(passkeyName.trim());
       globalState.reloadDashboard();
-      toastState.show("Device registered.", "info");
+      toast.info("Device registered.");
     } catch (err) {
       registerError = err instanceof Error ? err.message : "Registration failed";
     }
   }
 
-  async function handleDelete(device: DeviceInfo) {
-    if (!window.confirm(`Delete device "${device.name}"?`)) return;
+  async function handleDelete() {
+    if (!deleting) return;
+    const device = deleting;
+    deleting = undefined;
     await orpc.devices.remove({ id: device.id });
     globalState.devices = globalState.devices.filter((item) => item.id !== device.id);
-    toastState.show("Device deleted.", "info");
+    toast.info("Device deleted.");
   }
 </script>
 
 <h2 class="mb-2 text-lg font-medium">My Devices</h2>
 
-<div class="rounded-box border-base-300 max-w-screen-lg overflow-x-auto border">
-  <table class="table min-w-150">
-    <thead>
-      <tr>
-        <th>Device Name</th>
-        <th>Created At</th>
-        <th>Last Used At</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
+<div class="max-w-screen-lg overflow-x-auto rounded-lg border">
+  <Table.Root class="min-w-150">
+    <Table.Header>
+      <Table.Row>
+        <Table.Head>Device Name</Table.Head>
+        <Table.Head>Created At</Table.Head>
+        <Table.Head>Last Used At</Table.Head>
+        <Table.Head>Actions</Table.Head>
+      </Table.Row>
+    </Table.Header>
+    <Table.Body>
       {#each visible as device}
-        <tr class={editing?.id === device.id ? "bg-base-200" : ""}>
-          <td class="font-medium">{device.name}</td>
-          <td>{fmt(device.createdAt)}</td>
-          <td>{fmt(device.lastUsedAt)}</td>
-          <td>
+        <Table.Row class={editing?.id === device.id ? "bg-muted" : ""}>
+          <Table.Cell class="font-medium">{device.name}</Table.Cell>
+          <Table.Cell>{fmt(device.createdAt)}</Table.Cell>
+          <Table.Cell>{fmt(device.lastUsedAt)}</Table.Cell>
+          <Table.Cell>
             <div class="flex flex-wrap gap-2">
-              <button class="btn-link" onclick={() => openEdit(device)}>Edit name</button>
+              <Button variant="link" size="sm" onclick={() => openEdit(device)}>Edit name</Button>
               {#if globalState.devices.length > 1}
-                <button class="btn-link text-error" onclick={() => handleDelete(device)}>
+                <Button
+                  variant="link"
+                  size="sm"
+                  class="text-destructive"
+                  onclick={() => (deleting = device)}
+                >
                   Delete
-                </button>
+                </Button>
               {/if}
             </div>
-          </td>
-        </tr>
+          </Table.Cell>
+        </Table.Row>
         {#if editing?.id === device.id}
-          <tr>
-            <td colspan="4">
+          <Table.Row>
+            <Table.Cell colspan={4}>
               <form
-                class="flex flex-wrap items-center gap-2"
+                class="flex flex-wrap items-end gap-2"
                 onsubmit={(e) => {
                   e.preventDefault();
                   handleSaveName();
                 }}
               >
-                <input
-                  class="input input-bordered input-sm w-full max-w-xs flex-1"
-                  bind:value={name}
-                  placeholder="Device name"
-                  required
-                />
-                <button class="btn btn-primary btn-sm" type="submit">Save</button>
-                <button class="btn btn-sm" type="button" onclick={closeForm}>Cancel</button>
+                <Field.Field class="w-full max-w-xs flex-1">
+                  <Field.Label for="rename-device" class="sr-only">Device name</Field.Label>
+                  <Input id="rename-device" bind:value={name} placeholder="Device name" required />
+                </Field.Field>
+                <Button size="sm" type="submit">Save</Button>
+                <Button size="sm" variant="outline" type="button" onclick={closeForm}>
+                  Cancel
+                </Button>
               </form>
-            </td>
-          </tr>
+            </Table.Cell>
+          </Table.Row>
         {/if}
       {/each}
       {#if registering}
-        <tr>
-          <td colspan="4">
+        <Table.Row>
+          <Table.Cell colspan={4}>
             <form
-              class="flex flex-wrap items-center gap-2"
+              class="flex flex-wrap items-end gap-2"
               onsubmit={(e) => {
                 e.preventDefault();
                 handleRegisterClick();
               }}
             >
-              <input
-                class="input input-bordered input-sm w-full max-w-xs flex-1"
-                use:autofocus
-                bind:value={passkeyName}
-                placeholder="Passkey name"
-                required
-              />
-              <button class="btn btn-primary btn-sm" type="submit" disabled={$loading}>
+              <Field.Field class="w-full max-w-xs flex-1">
+                <Field.Label for="register-device" class="sr-only">Passkey name</Field.Label>
+                <Input
+                  id="register-device"
+                  bind:ref={registerInput}
+                  autofocus
+                  bind:value={passkeyName}
+                  placeholder="Passkey name"
+                  required
+                />
+              </Field.Field>
+              <Button size="sm" type="submit" disabled={$loading}>
                 {$loading ? "Registering..." : "Register"}
-              </button>
-              <button class="btn btn-sm" type="button" onclick={closeForm}>Cancel</button>
+              </Button>
+              <Button size="sm" variant="outline" type="button" onclick={closeForm}>Cancel</Button>
             </form>
-          </td>
-        </tr>
+          </Table.Cell>
+        </Table.Row>
       {:else}
-        <tr>
-          <td colspan="4">
+        <Table.Row>
+          <Table.Cell colspan={4}>
             <div class="flex flex-wrap items-center gap-2">
-              <button class="btn btn-primary btn-sm" onclick={openRegister} disabled={$loading}>
+              <Button size="sm" onclick={openRegister} disabled={$loading}>
                 {$loading ? "Registering..." : "Register device"}
-              </button>
+              </Button>
               {#if globalState.user?.hasRegistered}
-                <button class="btn btn-sm" onclick={handleLink} disabled={linking}>
+                <Button size="sm" variant="outline" onclick={handleLink} disabled={linking}>
                   {linking ? "Creating link..." : "Link to another device"}
-                </button>
+                </Button>
               {/if}
             </div>
             {#if registerError}
-              <div class="alert alert-error mt-2 max-w-md" role="alert">{registerError}</div>
+              <Alert variant="destructive" class="mt-2 max-w-md">
+                <CircleAlertIcon />
+                <AlertDescription>{registerError}</AlertDescription>
+              </Alert>
             {/if}
             {#if linkUrl}
               <p class="mt-2 text-sm">Open this link on the new device within 5 minutes.</p>
               <CopyLink value={linkUrl} class="mt-1" />
             {/if}
-          </td>
-        </tr>
+          </Table.Cell>
+        </Table.Row>
       {/if}
-    </tbody>
-  </table>
+    </Table.Body>
+  </Table.Root>
 </div>
 
 <Pagination {page} {pageCount} onchange={changePage} />
+
+<AlertDialog.Root
+  open={deleting !== undefined}
+  onOpenChange={(next) => {
+    if (!next) deleting = undefined;
+  }}
+>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Delete device?</AlertDialog.Title>
+      <AlertDialog.Description>
+        "{deleting?.name}" will no longer be able to sign in with its passkey.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+      <AlertDialog.Action onclick={handleDelete}>Delete</AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>

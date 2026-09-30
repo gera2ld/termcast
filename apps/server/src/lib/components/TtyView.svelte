@@ -296,11 +296,11 @@
 
     {#if connView?.error}
       <div
-        class="bg-base-100 absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 px-4 text-center"
+        class="bg-background absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 px-4 text-center"
       >
-        <p class="text-error text-lg font-medium">{connView.error}</p>
+        <p class="text-destructive text-lg font-medium">{connView.error}</p>
         {#if connView.token}
-          <p class="text-sm opacity-70">Ask whoever shared it for a new link.</p>
+          <p class="text-muted-foreground text-sm">Ask whoever shared it for a new link.</p>
         {/if}
       </div>
     {/if}

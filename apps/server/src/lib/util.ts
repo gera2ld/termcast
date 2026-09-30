@@ -7,11 +7,11 @@ export function labelFor(tab: TabInfo) {
   return tab.label ?? tab.id;
 }
 
-export const statusInfo: Record<TtyStatus, { label: string; class: string; dot: string }> = {
-  connecting: { label: "Connecting...", class: "badge-warning", dot: "bg-warning" },
-  connected: { label: "Connected", class: "badge-success", dot: "bg-success" },
-  disconnected: { label: "Disconnected", class: "badge-error", dot: "bg-error" },
-  reconnecting: { label: "Reconnecting...", class: "badge-warning", dot: "bg-warning" },
+export const statusInfo: Record<TtyStatus, { label: string; dot: string }> = {
+  connecting: { label: "Connecting...", dot: "bg-chart-4" },
+  connected: { label: "Connected", dot: "bg-chart-1" },
+  disconnected: { label: "Disconnected", dot: "bg-chart-2" },
+  reconnecting: { label: "Reconnecting...", dot: "bg-chart-4" },
 };
 
 export function formatTimeLeft(expireAt: number, now: number = Date.now()) {

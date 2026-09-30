@@ -2,6 +2,7 @@
   import { page } from "$app/state";
   import TtyView from "$lib/components/TtyView.svelte";
   import StatusDot from "$lib/components/StatusDot.svelte";
+  import { Badge } from "$lib/components/ui/badge";
   import { GlobalState } from "$lib/global.svelte";
   import { SHARE_VIEW } from "$lib/routes";
   import { formatTimeLeft } from "$lib/util";
@@ -41,23 +42,26 @@
 <div class="flex h-screen flex-col">
   {#if token}
     <div
-      role="tablist"
-      class="tabs tabs-lift bg-base-300 shrink-0 flex-nowrap items-center overflow-x-auto px-4 sm:px-6"
+      class="bg-muted flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto px-4 py-2 sm:px-6"
     >
-      <span class="tab text-base-content/80 shrink-0 font-bold">TermCast</span>
-      <span
-        class={`badge badge-sm ${conn?.canWrite ? "badge-warning" : ""}`}
+      <span class="bg-secondary text-secondary-foreground shrink-0 rounded-full px-3 font-bold">
+        TermCast
+      </span>
+      <Badge
+        variant={conn?.canWrite ? "default" : "secondary"}
         title={conn?.canWrite
           ? "You can type in this terminal, and everyone sees the same screen."
           : "View only — you cannot type in this terminal."}
       >
         Shared session
-      </span>
+      </Badge>
       {#if conn?.status}
         <StatusDot status={conn.status} wsConnected={conn?.wsConnected ?? false} />
       {/if}
       {#if conn?.expiresAt}
-        <span class="ml-auto opacity-70">Expires in {formatTimeLeft(conn.expiresAt, now)}</span>
+        <span class="text-muted-foreground ml-auto text-sm">
+          Expires in {formatTimeLeft(conn.expiresAt, now)}
+        </span>
       {/if}
     </div>
   {/if}
@@ -66,7 +70,7 @@
     {#if token}
       <TtyView {tab} active />
     {:else}
-      <div class="my-8 text-center text-sm opacity-70">
+      <div class="text-muted-foreground my-8 text-center text-sm">
         This shared session link is missing its token.
       </div>
     {/if}

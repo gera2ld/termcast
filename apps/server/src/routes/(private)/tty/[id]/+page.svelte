@@ -7,7 +7,7 @@
 </script>
 
 {#if !tab}
-  <div class="absolute inset-0 flex items-center justify-center text-sm opacity-70">
+  <div class="text-muted-foreground absolute inset-0 flex items-center justify-center text-sm">
     This session is no longer available.
   </div>
 {/if}

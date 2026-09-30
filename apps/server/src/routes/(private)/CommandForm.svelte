@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { Button } from "$lib/components/ui/button";
+  import * as Field from "$lib/components/ui/field";
+  import { Input } from "$lib/components/ui/input";
   import { parseArgs } from "@termcast/shared";
 
   let {
@@ -38,29 +41,28 @@
     handleSubmit();
   }}
 >
-  <div class="grid grid-cols-2 gap-2">
-    <fieldset class="fieldset">
-      <legend class="fieldset-legend">Label</legend>
-      <input
-        class="input input-bordered input-sm block w-full"
-        bind:value={label}
-        placeholder="e.g. Run Bash"
-      />
-    </fieldset>
-    <fieldset class="fieldset">
-      <legend class="fieldset-legend">Command line</legend>
-      <input
-        class="input input-bordered input-sm block w-full font-mono"
-        bind:value={args}
-        placeholder={'ssh user@host -t "tmux attach"'}
-        required
-      />
-    </fieldset>
-  </div>
-  <div class="mt-2 flex justify-end gap-2">
-    <button class="btn btn-primary btn-sm" type="submit" disabled={saving}>
-      {saving ? "Saving..." : submitLabel}
-    </button>
-    <button class="btn btn-sm" type="button" onclick={() => oncancel?.()}>Cancel</button>
-  </div>
+  <Field.Group>
+    <div class="grid grid-cols-2 gap-2">
+      <Field.Field>
+        <Field.Label for="command-label">Label</Field.Label>
+        <Input id="command-label" bind:value={label} placeholder="e.g. Run Bash" />
+      </Field.Field>
+      <Field.Field>
+        <Field.Label for="command-args">Command line</Field.Label>
+        <Input
+          id="command-args"
+          bind:value={args}
+          class="font-mono"
+          placeholder={'ssh user@host -t "tmux attach"'}
+          required
+        />
+      </Field.Field>
+    </div>
+    <div class="flex justify-end gap-2">
+      <Button size="sm" type="submit" disabled={saving}>
+        {saving ? "Saving..." : submitLabel}
+      </Button>
+      <Button size="sm" variant="outline" type="button" onclick={() => oncancel?.()}>Cancel</Button>
+    </div>
+  </Field.Group>
 </form>

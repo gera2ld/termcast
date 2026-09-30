@@ -52,8 +52,12 @@ export const deviceInfoSchema = z.object({
 export type DeviceInfo = z.infer<typeof deviceInfoSchema>;
 
 // Flat settings schema
-export const terminalThemeSchema = z.enum(["auto", "light", "dark"]).default("dark");
-export type TerminalTheme = z.infer<typeof terminalThemeSchema>;
+export const terminalThemeEnum = z.enum(["auto", "light", "dark"]);
+/** Defaulted, for reads. Zod applies `.default()` before `.optional()`, so a write input
+ *  must use `terminalThemeEnum.optional()` — otherwise an omitted key parses as the
+ *  default and gets persisted over the stored value. */
+export const terminalThemeSchema = terminalThemeEnum.default("auto");
+export type TerminalTheme = z.infer<typeof terminalThemeEnum>;
 
 export const settingsSchema = z.object({
   // WebAuthn settings

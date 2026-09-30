@@ -1,16 +1,18 @@
 <script lang="ts">
+  import * as AlertDialog from "$lib/components/ui/alert-dialog";
+  import { Button } from "$lib/components/ui/button";
+  import * as Table from "$lib/components/ui/table";
   import Pagination, { PAGE_SIZE } from "$lib/components/Pagination.svelte";
   import { GlobalState } from "$lib/global.svelte";
-  import { orpc } from "$lib/orpc-client";
-  import { ToastState } from "@/lib/toasts.svelte";
   import { formatArgs, type Command } from "@termcast/shared";
   import { nanoid } from "nanoid";
+  import { toast } from "svelte-sonner";
   import CommandForm from "./CommandForm.svelte";
 
   const globalState = GlobalState.get();
-  const toastState = ToastState.get();
 
   let editing = $state<Command | undefined>(undefined);
+  let deleting = $state<Command | undefined>(undefined);
   let showForm = $state(false);
   let saving = $state(false);
   let page = $state(0);
@@ -40,7 +42,7 @@
 
   async function handleSave(data: { label: string; args: string[] }) {
     if (!data.args.length) {
-      toastState.show("Command line is required.", "error");
+      toast.error("Command line is required.");
       return;
     }
     saving = true;
@@ -51,97 +53,109 @@
         await globalState.createCommand({ id: nanoid(), label: data.label, args: data.args });
       }
       closeForm();
-      toastState.show("Command saved.", "info");
+      toast.info("Command saved.");
     } catch (err) {
-      toastState.show(`Failed to save command: ${(err as Error).message}`, "error");
+      toast.error(`Failed to save command: ${(err as Error).message}`);
     } finally {
       saving = false;
     }
   }
 
-  async function handleDelete(command: Command) {
-    if (!window.confirm(`Delete command "${command.label}"?`)) return;
+  async function handleDelete() {
+    if (!deleting) return;
+    const command = deleting;
+    deleting = undefined;
     try {
       await globalState.deleteCommand(command.id);
       if (editing?.id === command.id) closeForm();
-      toastState.show("Command deleted.", "info");
+      toast.info("Command deleted.");
     } catch (err) {
-      toastState.show(`Failed to delete command: ${(err as Error).message}`, "error");
-    }
-  }
-
-  async function connectCommand(command: Command) {
-    try {
-      const { id } = await orpc.tabs.open({ commandId: command.id });
-      globalState.openTab({ id, label: command.label });
-    } catch (err) {
-      toastState.show(`Failed to start command: ${(err as Error).message}`, "error");
+      toast.error(`Failed to delete command: ${(err as Error).message}`);
     }
   }
 </script>
 
 <h2 class="mb-2 text-lg font-medium">My Commands</h2>
 
-<div class="rounded-box border-base-300 max-w-screen-lg overflow-x-auto border">
-  <table class="table min-w-150">
-    <thead>
-      <tr>
-        <th class="w-40">Label</th>
-        <th>Command</th>
-        <th class="w-56">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
+<div class="max-w-screen-lg overflow-x-auto rounded-lg border">
+  <Table.Root class="min-w-150">
+    <Table.Header>
+      <Table.Row>
+        <Table.Head class="w-40">Label</Table.Head>
+        <Table.Head>Command</Table.Head>
+        <Table.Head class="w-56">Actions</Table.Head>
+      </Table.Row>
+    </Table.Header>
+    <Table.Body>
       {#each visible as command}
-        <tr class={editing?.id === command.id ? "bg-base-200" : ""}>
-          <td class="font-medium">{command.label}</td>
-          <td><code class="text-sm">{formatArgs(command.args)}</code></td>
-          <td>
+        <Table.Row class={editing?.id === command.id ? "bg-muted" : ""}>
+          <Table.Cell class="font-medium">{command.label}</Table.Cell>
+          <Table.Cell><code class="text-sm">{formatArgs(command.args)}</code></Table.Cell>
+          <Table.Cell>
             <div class="flex flex-wrap gap-2">
-              <button class="btn-link" onclick={() => connectCommand(command)}> Connect </button>
-              <button class="btn-link" onclick={() => startEdit(command)}>Edit</button>
-              <button class="btn-link text-error" onclick={() => handleDelete(command)}>
+              <Button variant="link" size="sm" onclick={() => startEdit(command)}>Edit</Button>
+              <Button
+                variant="link"
+                size="sm"
+                class="text-destructive"
+                onclick={() => (deleting = command)}
+              >
                 Delete
-              </button>
+              </Button>
             </div>
-          </td>
-        </tr>
+          </Table.Cell>
+        </Table.Row>
         {#if editing?.id === command.id}
-          <tr>
-            <td colspan="3" class="bg-base-200">
+          <Table.Row>
+            <Table.Cell colspan={3} class="bg-muted">
               <CommandForm
                 name={command.id}
                 label={command.label}
                 args={formatArgs(command.args)}
                 submitLabel="Save"
                 {saving}
-                onsubmit={(data) => handleSave(data)}
+                onsubmit={handleSave}
                 oncancel={closeForm}
               />
-            </td>
-          </tr>
+            </Table.Cell>
+          </Table.Row>
         {/if}
       {/each}
       {#if !showForm}
-        <tr>
-          <td colspan="3">
-            <button class="btn btn-primary btn-sm" onclick={startCreate}>Add Command</button>
-          </td>
-        </tr>
+        <Table.Row>
+          <Table.Cell colspan={3}>
+            <Button size="sm" onclick={startCreate}>Add Command</Button>
+          </Table.Cell>
+        </Table.Row>
       {:else if !editing}
-        <tr>
-          <td colspan="3" class="bg-base-200">
-            <CommandForm
-              submitLabel="Create"
-              {saving}
-              onsubmit={(data) => handleSave(data)}
-              oncancel={closeForm}
-            />
-          </td>
-        </tr>
+        <Table.Row>
+          <Table.Cell colspan={3} class="bg-muted">
+            <CommandForm submitLabel="Create" {saving} onsubmit={handleSave} oncancel={closeForm} />
+          </Table.Cell>
+        </Table.Row>
       {/if}
-    </tbody>
-  </table>
+    </Table.Body>
+  </Table.Root>
 </div>
 
 <Pagination {page} {pageCount} onchange={changePage} />
+
+<AlertDialog.Root
+  open={deleting !== undefined}
+  onOpenChange={(next) => {
+    if (!next) deleting = undefined;
+  }}
+>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Delete command?</AlertDialog.Title>
+      <AlertDialog.Description>
+        "{deleting?.label}" will be removed and any running session stays open.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+      <AlertDialog.Action onclick={handleDelete}>Delete</AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>

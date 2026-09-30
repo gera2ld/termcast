@@ -8,7 +8,7 @@ default:
 docker-build:
     docker buildx build -f Dockerfile --platform linux/amd64 --provenance=false --sbom=false --push -t gera2ld/termcast .
 
-DATA_DIR := justfile_directory()
+DATA_DIR := justfile_directory() + "/data"
 
 # Run the web dev server
 dev:

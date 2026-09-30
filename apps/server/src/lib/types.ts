@@ -1,11 +1,5 @@
 import type { TtyBuffer } from "@termcast/shared";
 
-export interface IToast {
-  id: string;
-  text: string;
-  kind: "info" | "error";
-}
-
 export type TtyStatus = "connected" | "connecting" | "reconnecting" | "disconnected";
 
 export interface IShareToken {

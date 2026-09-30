@@ -1,12 +1,19 @@
 <script lang="ts">
+  import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+  } from "$lib/components/ui/card";
+  import { ToggleGroup, ToggleGroupItem } from "$lib/components/ui/toggle-group";
   import { GlobalState } from "$lib/global.svelte";
-  import { ToastState } from "$lib/toasts.svelte";
+  import { toast } from "svelte-sonner";
   import type { TerminalTheme } from "@termcast/shared";
 
   const globalState = GlobalState.get();
-  const toastState = ToastState.get();
 
-  const theme = $derived(globalState.settings?.terminalTheme);
+  const theme = $derived(globalState.settings?.terminalTheme ?? "auto");
 
   const options: { value: TerminalTheme; label: string; hint: string }[] = [
     { value: "auto", label: "Auto", hint: "Follow system" },
@@ -16,40 +23,41 @@
 
   let saving = $state(false);
 
-  async function select(value: TerminalTheme) {
-    if (value === theme || saving) return;
+  async function select(value: string) {
+    if (!value || value === theme || saving) return;
     saving = true;
     try {
-      await globalState.updateSettings({ terminalTheme: value });
-      toastState.show("Terminal theme saved.", "info");
+      await globalState.updateSettings({ terminalTheme: value as TerminalTheme });
+      toast.info("Terminal theme saved.");
     } catch (err) {
-      toastState.show(`Failed to save terminal theme: ${(err as Error).message}`, "error");
+      toast.error(`Failed to save terminal theme: ${(err as Error).message}`);
     } finally {
       saving = false;
     }
   }
 </script>
 
-<div class="card bg-base-200 shadow-md">
-  <div class="card-body">
-    <h2 class="card-title">Appearance</h2>
-    <p class="text-sm opacity-70">
+<Card>
+  <CardHeader>
+    <CardTitle>Appearance</CardTitle>
+    <CardDescription>
       Terminal theme. Applies to the dashboard and shared session views.
-    </p>
-
-    <div class="join mt-2" role="group" aria-label="Terminal theme">
+    </CardDescription>
+  </CardHeader>
+  <CardContent>
+    <ToggleGroup
+      type="single"
+      variant="outline"
+      value={theme}
+      onValueChange={select}
+      class="mt-2"
+      aria-label="Terminal theme"
+    >
       {#each options as option (option.value)}
-        <button
-          type="button"
-          class="btn join-item btn-sm {theme === option.value ? 'btn-active' : ''}"
-          title={option.hint}
-          aria-pressed={theme === option.value}
-          disabled={saving}
-          onclick={() => select(option.value)}
-        >
+        <ToggleGroupItem value={option.value} title={option.hint} disabled={saving}>
           {option.label}
-        </button>
+        </ToggleGroupItem>
       {/each}
-    </div>
-  </div>
-</div>
+    </ToggleGroup>
+  </CardContent>
+</Card>

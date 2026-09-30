@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { ToastState } from "$lib/toasts.svelte";
-
-  const toastState = ToastState.get();
+  import * as InputGroup from "$lib/components/ui/input-group";
+  import { CopyIcon, CheckIcon } from "@lucide/svelte";
+  import { toast } from "svelte-sonner";
 
   let { value, class: className = "" }: { value: string; class?: string } = $props();
 
@@ -13,19 +13,20 @@
       copied = true;
       setTimeout(() => (copied = false), 2000);
     } catch {
-      toastState.show("Could not copy the link, please select and copy it manually.", "error");
+      toast.error("Could not copy the link, please select and copy it manually.");
     }
   }
 </script>
 
-<div class="flex items-center gap-2 {className}">
-  <input
-    class="input input-bordered input-sm w-full flex-1 font-mono"
-    readonly
-    {value}
-    onclick={(e) => e.currentTarget.select()}
-  />
-  <button class="btn btn-sm shrink-0" onclick={handleCopy}>
-    {copied ? "Copied" : "Copy"}
-  </button>
-</div>
+<InputGroup.Root class={className}>
+  <InputGroup.Input {value} readonly class="font-mono" onclick={(e) => e.currentTarget.select()} />
+  <InputGroup.Button onclick={handleCopy} variant="outline" aria-label="Copy link">
+    {#if copied}
+      <CheckIcon />
+      Copied
+    {:else}
+      <CopyIcon />
+      Copy
+    {/if}
+  </InputGroup.Button>
+</InputGroup.Root>

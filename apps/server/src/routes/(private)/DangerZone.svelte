@@ -1,17 +1,32 @@
 <script lang="ts">
+  import { Button } from "$lib/components/ui/button";
+  import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+  } from "$lib/components/ui/card";
+
   let { onSetup }: { onSetup?: () => void } = $props();
 </script>
 
-<div class="card border-error/40 bg-base-200 shadow-md">
-  <div class="card-body">
-    <h2 class="card-title text-error">Danger zone</h2>
-    <p class="text-sm opacity-70">
+<Card class="border-destructive/40">
+  <CardHeader>
+    <CardTitle class="text-destructive">Danger zone</CardTitle>
+    <CardDescription>
       Resetting reconfigures TermCast from the setup screen. Your registered passkeys are bound to
       the current rpId and will need to be re-registered if you change it. Commands and other
       settings are kept.
-    </p>
-    <div class="flex justify-end">
-      <button class="btn btn-error btn-outline" onclick={() => onSetup?.()}> Reset rpId </button>
-    </div>
-  </div>
-</div>
+    </CardDescription>
+  </CardHeader>
+  <CardContent class="flex justify-end">
+    <Button
+      variant="outline"
+      class="border-destructive text-destructive hover:bg-destructive/10"
+      onclick={() => onSetup?.()}
+    >
+      Reset rpId
+    </Button>
+  </CardContent>
+</Card>

@@ -1,12 +1,12 @@
 <script lang="ts">
+  import { Spinner } from "$lib/components/ui/spinner";
+  import { Toaster } from "$lib/components/ui/sonner";
   import { GlobalState } from "$lib/global.svelte";
-  import { ToastState } from "$lib/toasts.svelte";
   import type { Snippet } from "svelte";
 
   const { children }: { children?: Snippet } = $props();
 
   const globalState = GlobalState.set();
-  const toastState = ToastState.set();
 
   const ready = globalState.load();
 
@@ -22,31 +22,12 @@
   <title>TermCast</title>
 </svelte:head>
 
+<Toaster richColors closeButton position="bottom-right" />
+
 {#await ready}
   <div class="mt-32 flex justify-center p-4">
-    <span class="loading loading-spinner loading-lg"></span>
+    <Spinner />
   </div>
 {:then}
   {@render children?.()}
 {/await}
-
-{#if toastState.toasts.length}
-  <div class="toast toast-end toast-bottom z-50">
-    {#each toastState.toasts as toast (toast.id)}
-      <div
-        class="alert {toast.kind === 'error'
-          ? 'alert-error'
-          : 'alert-info'} max-w-sm items-start text-sm"
-      >
-        <span class="break-words whitespace-normal">{toast.text}</span>
-        <button
-          class="btn btn-ghost btn-xs btn-circle shrink-0"
-          aria-label="Dismiss"
-          onclick={() => toastState.dismiss(toast.id)}
-        >
-          ✕
-        </button>
-      </div>
-    {/each}
-  </div>
-{/if}

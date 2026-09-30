@@ -1,10 +1,13 @@
 <script lang="ts">
+  import { Button } from "$lib/components/ui/button";
+  import { Card, CardContent, CardHeader, CardTitle } from "$lib/components/ui/card";
+  import * as Field from "$lib/components/ui/field";
+  import { Input } from "$lib/components/ui/input";
   import { GlobalState } from "$lib/global.svelte";
+  import { toast } from "svelte-sonner";
   import type { Settings } from "@termcast/shared";
-  import { ToastState } from "$lib/toasts.svelte";
 
   const globalState = GlobalState.get();
-  const toastState = ToastState.get();
 
   let saving = $state(false);
 
@@ -49,63 +52,60 @@
         webhookTermStarted: form.webhook.trim() || undefined,
       });
       await globalState.reloadDashboard();
-      toastState.show("Settings saved.", "info");
+      toast.info("Settings saved.");
     } catch (err) {
-      toastState.show(`Failed to save settings: ${(err as Error).message}`, "error");
+      toast.error(`Failed to save settings: ${(err as Error).message}`);
     } finally {
       saving = false;
     }
   }
 </script>
 
-<div class="card bg-base-200 shadow-md">
-  <div class="card-body">
-    <h2 class="card-title">WebAuthn Settings</h2>
+<Card>
+  <CardHeader>
+    <CardTitle>WebAuthn Settings</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <Field.Set>
+      <Field.Group>
+        <Field.Field>
+          <Field.Label for="rpId">rpId</Field.Label>
+          <Input id="rpId" value={globalState.settings?.rpId ?? ""} readonly />
+          <Field.Description>Read-only here. To change it, use the danger zone.</Field.Description>
+        </Field.Field>
 
-    <fieldset class="fieldset">
-      <legend class="fieldset-legend">rpId</legend>
-      <input
-        class="input input-bordered w-full"
-        value={globalState.settings?.rpId ?? ""}
-        readonly
-      />
-      <p class="text-xs opacity-60">Read-only here. To change it, use the danger zone.</p>
-    </fieldset>
+        <Field.Field>
+          <Field.Label for="rpName">rpName</Field.Label>
+          <Input id="rpName" bind:value={form.rpName} />
+        </Field.Field>
 
-    <fieldset class="fieldset">
-      <legend class="fieldset-legend">rpName</legend>
-      <input class="input input-bordered w-full" bind:value={form.rpName} />
-    </fieldset>
+        <div class="grid grid-cols-2 gap-4">
+          <Field.Field>
+            <Field.Label for="displayName">Display name</Field.Label>
+            <Input id="displayName" bind:value={form.displayName} />
+          </Field.Field>
+          <Field.Field>
+            <Field.Label for="username">Username</Field.Label>
+            <Input id="username" bind:value={form.username} />
+          </Field.Field>
+        </div>
 
-    <div class="grid grid-cols-2 gap-2">
-      <fieldset class="fieldset">
-        <legend class="fieldset-legend">Display name</legend>
-        <input class="input input-bordered w-full" bind:value={form.displayName} />
-      </fieldset>
-      <fieldset class="fieldset">
-        <legend class="fieldset-legend">Username</legend>
-        <input class="input input-bordered w-full" bind:value={form.username} />
-      </fieldset>
-    </div>
+        <Field.Field>
+          <Field.Label for="origins">Expected origins (comma separated)</Field.Label>
+          <Input id="origins" bind:value={form.origins} />
+        </Field.Field>
 
-    <fieldset class="fieldset">
-      <legend class="fieldset-legend">Expected origins (comma separated)</legend>
-      <input class="input input-bordered w-full" bind:value={form.origins} />
-    </fieldset>
+        <Field.Field>
+          <Field.Label for="webhook">Webhook (term.started URL)</Field.Label>
+          <Input id="webhook" bind:value={form.webhook} placeholder="https://hooks.example.com" />
+        </Field.Field>
+      </Field.Group>
 
-    <fieldset class="fieldset">
-      <legend class="fieldset-legend">Webhook (term.started URL)</legend>
-      <input
-        class="input input-bordered w-full"
-        bind:value={form.webhook}
-        placeholder="https://hooks.example.com"
-      />
-    </fieldset>
-
-    <div class="flex justify-end">
-      <button class="btn btn-primary" onclick={save} disabled={saving}>
-        {saving ? "Saving..." : "Save"}
-      </button>
-    </div>
-  </div>
-</div>
+      <div class="mt-4 flex justify-end">
+        <Button onclick={save} disabled={saving}>
+          {saving ? "Saving..." : "Save"}
+        </Button>
+      </div>
+    </Field.Set>
+  </CardContent>
+</Card>

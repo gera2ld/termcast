@@ -1,3 +1,3 @@
-import "$lib/style.css";
+import "../app.css";
 
 export const ssr = false;

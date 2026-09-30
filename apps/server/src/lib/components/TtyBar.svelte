@@ -1,6 +1,13 @@
 <script lang="ts">
   import CopyLink from "$lib/components/CopyLink.svelte";
   import Pagination from "$lib/components/Pagination.svelte";
+  import * as AlertDialog from "$lib/components/ui/alert-dialog";
+  import { Button } from "$lib/components/ui/button";
+  import * as ButtonGroup from "$lib/components/ui/button-group";
+  import * as Dialog from "$lib/components/ui/dialog";
+  import { Input } from "$lib/components/ui/input";
+  import * as Select from "$lib/components/ui/select";
+  import * as Table from "$lib/components/ui/table";
   import { formatTimeLeft } from "$lib/util";
   import { GlobalState } from "$lib/global.svelte";
   import { TabState } from "$lib/tabs.svelte";
@@ -14,15 +21,19 @@
 
   const SHARE_PAGE_SIZE = 5;
 
-  let dialog = $state<HTMLDialogElement | undefined>(undefined);
   let busy = $state(false);
   let page = $state(0);
   let open = $state(false);
+  let stopOpen = $state(false);
   let now = $state(Date.now());
+
+  const ACCESS_OPTIONS = [
+    { value: "read", label: "View only" },
+    { value: "write", label: "Can type" },
+  ];
 
   // Derived values
   const tokens = $derived(globalState.connections[tab.id]?.shareTokens ?? []);
-  const writable = $derived(tokens.some((item) => item.allowWrite));
   const pageCount = $derived(Math.max(1, Math.ceil(tokens.length / SHARE_PAGE_SIZE)));
   const visible = $derived(tokens.slice(page * SHARE_PAGE_SIZE, (page + 1) * SHARE_PAGE_SIZE));
   const viewOnlyCount = $derived(
@@ -45,12 +56,8 @@
             : `Sharing (${viewOnlyCount} view only, ${canTypeCount} can type)`,
   );
 
-  const buttonClass = $derived(
-    !tokens.length
-      ? "btn btn-sm"
-      : canTypeCount > 1
-        ? "btn btn-sm btn-error"
-        : "btn btn-sm btn-warning",
+  const variant = $derived(
+    !tokens.length ? "outline" : canTypeCount > 1 ? "destructive" : "default",
   );
 
   // Effects
@@ -67,11 +74,6 @@
   function openDialog() {
     now = Date.now();
     open = true;
-    dialog?.showModal();
-  }
-
-  function closeDialog() {
-    open = false;
   }
 
   async function loadTokens() {
@@ -96,67 +98,81 @@
       busy = false;
     }
   }
+
+  function revokeLink(item: IShareToken) {
+    return run(() => tabState.revokeShareToken(item.token), "Failed to revoke link");
+  }
 </script>
 
 <div class="flex shrink-0 items-center justify-end gap-2 py-1">
-  <button class={buttonClass} onclick={openDialog} disabled={!tab.id}>
+  <Button {variant} size="sm" onclick={openDialog} disabled={!tab.id}>
     {label}
-  </button>
+  </Button>
 </div>
 
-<dialog class="modal" bind:this={dialog} onclose={closeDialog}>
-  <div class="modal-box max-w-3xl">
-    <h3 class="text-lg font-medium">Share this session</h3>
-    <p class="mt-2 text-sm">
-      Each link lets someone join this terminal live and see everything on screen. Links last an
-      hour; whoever is using one is disconnected when it expires or is revoked. Each link admits one
-      viewer at a time unless you raise its limit.
-    </p>
+<Dialog.Root bind:open>
+  <Dialog.Content class="max-w-3xl">
+    <Dialog.Header>
+      <Dialog.Title>Share this session</Dialog.Title>
+      <Dialog.Description>
+        Each link lets someone join this terminal live and see everything on screen. Links last an
+        hour; whoever is using one is disconnected when it expires or is revoked. Each link admits
+        one viewer at a time unless you raise its limit.
+      </Dialog.Description>
+    </Dialog.Header>
 
     {#if tokens.length}
-      <div class="rounded-box border-base-300 mt-4 overflow-x-auto border">
-        <table class="table-sm table min-w-200">
-          <thead>
-            <tr>
-              <th>Link</th>
-              <th class="w-36">Access</th>
-              <th class="w-28">Connections</th>
-              <th class="w-44"></th>
-            </tr>
-          </thead>
-          <tbody>
+      <div class="mt-4 max-h-80 overflow-auto rounded-lg border">
+        <Table.Root class="min-w-200">
+          <Table.Header>
+            <Table.Row>
+              <Table.Head>Link</Table.Head>
+              <Table.Head class="w-36">Access</Table.Head>
+              <Table.Head class="w-28">Connections</Table.Head>
+              <Table.Head class="w-44"></Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
             {#each visible as item (item.token)}
-              <tr class={item.allowWrite ? "bg-error/10" : ""}>
-                <td>
+              <Table.Row class={item.allowWrite ? "bg-destructive/10" : ""}>
+                <Table.Cell>
                   <CopyLink value={globalState.shareUrl(item.token)} />
                   <div class="text-sm opacity-50">
                     Expires in {formatTimeLeft(item.expireAt, now)}
                   </div>
-                </td>
-                <td>
-                  <select
-                    class="select select-bordered select-sm {item.allowWrite ? 'select-error' : ''}"
+                </Table.Cell>
+                <Table.Cell>
+                  <Select.Root
+                    type="single"
+                    items={ACCESS_OPTIONS}
                     value={item.allowWrite ? "write" : "read"}
                     disabled={busy}
-                    onchange={(e) =>
+                    onValueChange={(value) =>
                       run(
-                        () =>
-                          tabState.updateShareToken(item.token, e.currentTarget.value === "write"),
+                        () => tabState.updateShareToken(item.token, value === "write"),
                         "Failed to change access",
                       )}
                   >
-                    <option value="read">View only</option>
-                    <option value="write">Can type</option>
-                  </select>
-                </td>
-                <td>
-                  <label class="flex items-center gap-1 text-sm">
+                    <Select.Trigger size="sm" class={item.allowWrite ? "text-destructive" : ""}>
+                      <Select.Value />
+                    </Select.Trigger>
+                    <Select.Content>
+                      {#each ACCESS_OPTIONS as option (option.value)}
+                        <Select.Item value={option.value} label={option.label}>
+                          {option.label}
+                        </Select.Item>
+                      {/each}
+                    </Select.Content>
+                  </Select.Root>
+                </Table.Cell>
+                <Table.Cell>
+                  <div class="flex items-center gap-1 text-sm">
                     <span class="opacity-70">{item.connections}</span>
                     <span class="opacity-40">/</span>
-                    <input
-                      class="input input-bordered input-xs w-14"
+                    <Input
                       type="number"
                       min="1"
+                      class="w-14"
                       value={item.maxConnections}
                       disabled={busy}
                       onchange={(e) =>
@@ -170,62 +186,91 @@
                           "Failed to set connection limit",
                         )}
                     />
-                  </label>
-                </td>
-                <td>
-                  <div class="flex items-center gap-1">
-                    <button
-                      class="btn btn-ghost btn-sm"
+                  </div>
+                </Table.Cell>
+                <Table.Cell>
+                  <ButtonGroup.Root>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       disabled={busy}
                       onclick={() =>
                         run(() => tabState.renewShareToken(item.token), "Failed to renew link")}
                     >
                       Renew
-                    </button>
-                    <button
-                      class="btn btn-ghost btn-sm text-error"
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      class="text-destructive"
                       disabled={busy}
-                      onclick={() =>
-                        run(() => tabState.revokeShareToken(item.token), "Failed to revoke link")}
+                      onclick={() => revokeLink(item)}
                     >
                       Revoke
-                    </button>
-                  </div>
-                </td>
-              </tr>
+                    </Button>
+                  </ButtonGroup.Root>
+                </Table.Cell>
+              </Table.Row>
             {/each}
-          </tbody>
-        </table>
+          </Table.Body>
+        </Table.Root>
       </div>
 
       <Pagination {page} {pageCount} onchange={(next) => (page = next)} />
     {:else}
-      <p class="mt-4 text-sm opacity-70">Not shared. Create a link to let someone join.</p>
+      <p class="text-muted-foreground mt-4 text-sm">
+        Not shared. Create a link to let someone join.
+      </p>
     {/if}
 
-    <div class="modal-action">
+    <Dialog.Footer>
       {#if tokens.length}
-        <button
-          class="btn btn-sm btn-error btn-outline mr-auto"
-          disabled={busy}
-          onclick={() => run(() => tabState.revokeShareTokens(tab.id!), "Failed to stop sharing")}
-        >
-          Stop sharing
-        </button>
+        <AlertDialog.Root bind:open={stopOpen}>
+          <AlertDialog.Trigger>
+            {#snippet child({ props })}
+              <Button
+                {...props}
+                variant="outline"
+                size="sm"
+                class="text-destructive mr-auto"
+                disabled={busy}
+              >
+                Stop sharing
+              </Button>
+            {/snippet}
+          </AlertDialog.Trigger>
+          <AlertDialog.Content>
+            <AlertDialog.Header>
+              <AlertDialog.Title>Stop sharing this session?</AlertDialog.Title>
+              <AlertDialog.Description>
+                Everyone currently watching will be disconnected and every share link will stop
+                working.
+              </AlertDialog.Description>
+            </AlertDialog.Header>
+            <AlertDialog.Footer>
+              <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+              <AlertDialog.Action
+                onclick={() =>
+                  run(() => tabState.revokeShareTokens(tab.id!), "Failed to stop sharing")}
+              >
+                Stop sharing
+              </AlertDialog.Action>
+            </AlertDialog.Footer>
+          </AlertDialog.Content>
+        </AlertDialog.Root>
       {/if}
-      <button
-        class="btn btn-primary btn-sm"
+      <Button
+        size="sm"
         disabled={busy}
         onclick={() => run(() => tabState.createShareToken(tab.id!), "Failed to create a link")}
       >
         Add link
-      </button>
-      <form method="dialog">
-        <button class="btn btn-sm">Close</button>
-      </form>
-    </div>
-  </div>
-  <form method="dialog" class="modal-backdrop">
-    <button>close</button>
-  </form>
-</dialog>
+      </Button>
+      <Dialog.Close>
+        {#snippet child({ props })}
+          <Button {...props} variant="outline" size="sm">Close</Button>
+        {/snippet}
+      </Dialog.Close>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>

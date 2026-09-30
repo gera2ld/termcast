@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { Alert, AlertDescription } from "$lib/components/ui/alert";
+  import { Button } from "$lib/components/ui/button";
   import { GlobalState } from "$lib/global.svelte";
+  import { InfoIcon } from "@lucide/svelte";
   import Appearance from "./Appearance.svelte";
   import Commands from "./Commands.svelte";
   import DangerZone from "./DangerZone.svelte";
@@ -17,18 +20,21 @@
 
 {#if needsSetup}
   <div class="p-4">
-    <div class="alert alert-warning flex items-center justify-between gap-2 text-sm">
-      <span>TermCast isn't set up yet — configure your rpId to finish setup.</span>
-      <button
-        class="btn btn-sm btn-primary"
-        onclick={() => {
-          setupMode = "setup";
-          setupOpen = true;
-        }}
-      >
-        Set up
-      </button>
-    </div>
+    <Alert class="border-chart-3/40 text-chart-3">
+      <InfoIcon />
+      <AlertDescription class="flex flex-wrap items-center justify-between gap-2">
+        TermCast isn't set up yet — configure your rpId to finish setup.
+        <Button
+          size="sm"
+          onclick={() => {
+            setupMode = "setup";
+            setupOpen = true;
+          }}
+        >
+          Set up
+        </Button>
+      </AlertDescription>
+    </Alert>
   </div>
 {/if}
 

@@ -1,10 +1,22 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { Alert, AlertDescription } from "$lib/components/ui/alert";
+  import { Button } from "$lib/components/ui/button";
+  import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+  } from "$lib/components/ui/card";
+  import * as Field from "$lib/components/ui/field";
+  import { Spinner } from "$lib/components/ui/spinner";
+  import { Switch } from "$lib/components/ui/switch";
   import { GlobalState } from "$lib/global.svelte";
-  import { ToastState } from "$lib/toasts.svelte";
+  import { toast } from "svelte-sonner";
+  import { DownloadIcon, InfoIcon } from "@lucide/svelte";
 
   const globalState = GlobalState.get();
-  const toastState = ToastState.get();
   const tunnel = $derived(
     globalState.tunnel ?? {
       enabled: false,
@@ -22,82 +34,85 @@
   });
 </script>
 
-<div class="card bg-base-200 shadow-md">
-  <div class="card-body">
-    <h2 class="card-title">Cloudflared Tunnel</h2>
-    <p class="text-sm opacity-70">
+<Card>
+  <CardHeader>
+    <CardTitle>Cloudflared Tunnel</CardTitle>
+    <CardDescription>
       Share sessions publicly via a cloudflared quick tunnel. Enable this to get a public URL
       (trycloudflare.com) that anyone can use to join a shared session.
-    </p>
-
+    </CardDescription>
+  </CardHeader>
+  <CardContent class="flex flex-col gap-4">
     {#if !tunnel.resolved}
-      <div class="alert alert-warning mt-2">
-        <span>Cloudflared binary not found. Download it first to enable tunneling.</span>
-      </div>
+      <Alert class="border-chart-3/40 text-chart-3">
+        <InfoIcon />
+        <AlertDescription>
+          Cloudflared binary not found. Download it first to enable tunneling.
+        </AlertDescription>
+      </Alert>
     {/if}
 
-    <div class="mt-2 flex items-center gap-4">
-      <button
-        class="btn btn-sm"
+    <div class="flex items-center gap-4">
+      <Button
+        variant="outline"
         disabled={downloading || tunnel.resolved}
         onclick={async () => {
           downloading = true;
           try {
             await globalState.resolveCloudflared();
             await globalState.loadTunnel();
-            toastState.show("Cloudflared downloaded successfully.", "info");
+            toast.info("Cloudflared downloaded successfully.");
           } catch (err) {
-            toastState.show(`Failed to download cloudflared: ${(err as Error).message}`, "error");
+            toast.error(`Failed to download cloudflared: ${(err as Error).message}`);
           } finally {
             downloading = false;
           }
         }}
       >
         {#if downloading}
-          <span class="loading loading-spinner loading-xs"></span>
+          <Spinner />
           Downloading...
         {:else}
+          <DownloadIcon />
           Download cloudflared
         {/if}
-      </button>
+      </Button>
       {#if tunnel.resolved}
-        <span class="text-success text-sm">Binary ready</span>
+        <span class="text-chart-1 text-sm">Binary ready</span>
       {:else}
         <span class="text-sm">Not installed</span>
       {/if}
     </div>
 
     {#if tunnel.binaryPath}
-      <div class="mt-2 text-sm opacity-70">
+      <div class="text-muted-foreground text-sm">
         Path: <code class="text-xs">{tunnel.binaryPath}</code>
       </div>
     {/if}
 
-    <div class="mt-4 flex items-center gap-4">
-      <span class="text-sm">{tunnel.enabled ? "Enabled" : "Disabled"}</span>
-      <input
-        type="checkbox"
-        class="toggle toggle-primary"
+    <Field.Field orientation="horizontal" class="w-fit gap-4">
+      <Switch
+        id="tunnel-enabled"
         checked={tunnel.enabled}
         disabled={!tunnel.resolved}
-        onchange={async (e) => {
-          if (e.currentTarget.checked) {
-            await globalState.enableTunnel();
-          } else {
-            await globalState.disableTunnel();
-          }
-        }}
+        onCheckedChange={(checked) =>
+          checked ? globalState.enableTunnel() : globalState.disableTunnel()}
       />
-    </div>
+      <Field.Label for="tunnel-enabled" class="font-normal">
+        {tunnel.enabled ? "Enabled" : "Disabled"}
+      </Field.Label>
+    </Field.Field>
 
     {#if tunnel.url}
-      <div class="mt-2 text-sm">
-        <span class="opacity-70">Public URL:</span>
-        <a href={tunnel.url} class="link link-primary ml-1" target="_blank">{tunnel.url}</a>
+      <div class="text-sm">
+        <span class="text-muted-foreground">Public URL:</span>
+        <Button variant="link" size="sm" href={tunnel.url} target="_blank" class="h-auto p-0">
+          {tunnel.url}
+        </Button>
       </div>
     {/if}
     {#if tunnel.error}
-      <div class="text-error mt-2 text-sm">{tunnel.error}</div>
+      <div class="text-destructive text-sm">{tunnel.error}</div>
     {/if}
-  </div>
-</div>
+  </CardContent>
+</Card>
