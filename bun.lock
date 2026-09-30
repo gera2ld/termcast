@@ -13,7 +13,7 @@
         "typescript": "^6.0.2",
       },
     },
-    "packages/cli": {
+    "apps/cli": {
       "name": "@termcast/cli",
       "version": "0.0.1",
       "bin": {
@@ -30,20 +30,8 @@
         "typescript": "^6.0.2",
       },
     },
-    "packages/shared": {
-      "name": "@termcast/shared",
-      "version": "0.0.1",
-      "dependencies": {
-        "@gera2ld/common": "^0.1.2",
-        "@orpc/contract": "^1.15.0",
-        "@simplewebauthn/server": "^13.3.2",
-        "jose": "^6.0.0",
-        "nanoid": "^6.0.1",
-        "zod": "^4.4.3",
-      },
-    },
-    "packages/web": {
-      "name": "@termcast/web",
+    "apps/server": {
+      "name": "@termcast/server",
       "version": "0.0.1",
       "devDependencies": {
         "@gera2ld/common": "^0.1.2",
@@ -85,6 +73,18 @@
         "unplugin-icons": "^23.0.1",
         "vite": "^8.2.1",
         "webfontloader": "^1.6.28",
+        "zod": "^4.4.3",
+      },
+    },
+    "packages/shared": {
+      "name": "@termcast/shared",
+      "version": "0.0.1",
+      "dependencies": {
+        "@gera2ld/common": "^0.1.2",
+        "@orpc/contract": "^1.15.0",
+        "@simplewebauthn/server": "^13.3.2",
+        "jose": "^6.0.0",
+        "nanoid": "^6.0.1",
         "zod": "^4.4.3",
       },
     },
@@ -388,11 +388,11 @@
 
     "@tailwindcss/vite": ["@tailwindcss/vite@4.3.3", "", { "dependencies": { "@tailwindcss/node": "4.3.3", "@tailwindcss/oxide": "4.3.3", "tailwindcss": "4.3.3" }, "peerDependencies": { "vite": "^5.2.0 || ^6 || ^7 || ^8" } }, "sha512-yYU8cogLeSh/ms2jh8Fj7jaba/EWa7Ja6GoUqYZaraEuCI5YS6ms6ObZgjjedm+jm6XZjdNRWBpPP6Z86oOxcw=="],
 
-    "@termcast/cli": ["@termcast/cli@workspace:packages/cli"],
+    "@termcast/cli": ["@termcast/cli@workspace:apps/cli"],
+
+    "@termcast/server": ["@termcast/server@workspace:apps/server"],
 
     "@termcast/shared": ["@termcast/shared@workspace:packages/shared"],
-
-    "@termcast/web": ["@termcast/web@workspace:packages/web"],
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.1", "", { "dependencies": { "tslib": "2.8.1" } }, "sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg=="],
 

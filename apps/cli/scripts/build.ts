@@ -1,5 +1,5 @@
-import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "path";
 
 const BINARY = "termcast";
@@ -14,7 +14,7 @@ const sha =
   Bun.spawnSync(["git", "rev-parse", "--short=7", "HEAD"]).stdout.toString().trim() || "unknown";
 const VERSION_INFO = `${now.getUTCFullYear() - 2000}.${now.getUTCMonth() + 1}.${now.getUTCDate()}-${sha}`;
 
-const webBuildDir = resolve(packageRoot, "../web/build");
+const webBuildDir = resolve(packageRoot, "../server/build");
 const embedDir = resolve(packageRoot, "public");
 
 function requireWebBuild(): void {
