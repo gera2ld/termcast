@@ -2,13 +2,9 @@
 default:
     just --list
 
-# Build the Docker image and load it into the local Docker daemon
+# Build the Docker image
 docker-build:
-    docker compose build
-
-# Push the built image to the registry
-docker-push:
-    docker compose push
+    docker buildx build -f Dockerfile --platform linux/amd64 --provenance=false --sbom=false --push -t gera2ld/termcast .
 
 # Run the web dev server
 dev:
@@ -21,7 +17,7 @@ build-client:
 # Build the CLI for the given formats (e.g. `just build-cli 'js exe'`)
 build-cli formats:
     rm -rf packages/cli/dist
-    cd packages/cli && bun run scripts/build.ts {{formats}}
+    cd packages/cli && bun run scripts/build.ts {{ formats }}
 
 # Build the client and the CLI release distribution (embedded exes, gzipped, with version.txt manifest)
 build: build-client
