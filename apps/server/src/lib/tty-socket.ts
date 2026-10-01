@@ -50,6 +50,9 @@ export class TtySocket {
     socket.addEventListener("close", () => {
       if (this.socket !== socket) return;
       this.socket = undefined;
+      // The server detached us with the socket, so clear the consumer too: otherwise the
+      // reconnect's select() would be skipped by the already-attached guard.
+      this.consumer = undefined;
       this.state.wsConnected = false;
       if (this.stopped) return;
       this.reconnectTimer = setTimeout(() => {
@@ -59,8 +62,11 @@ export class TtySocket {
     });
   }
 
-  /** Attaches `consumer` as the active view and selects its tab on the socket. */
+  /** Attaches `consumer` as the active view and selects its tab on the socket. Re-selecting
+   * the tab already attached is a no-op: it would re-fit the pty and send a second SIGWINCH,
+   * which makes TUI apps repaint their screen from scratch. */
   select(consumer: TtyConsumer) {
+    if (this.consumer?.id === consumer.id) return;
     this.consumer = consumer;
     const buffer = this.state.connections[consumer.id]?.buffer;
     this.send({

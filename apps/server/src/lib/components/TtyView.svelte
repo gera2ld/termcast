@@ -1,12 +1,12 @@
 <script lang="ts">
   import { afterNavigate } from "$app/navigation";
   import { loadingFonts } from "$lib/font";
+  import { GlobalState } from "$lib/global.svelte";
   import { terminalThemes } from "$lib/themes";
   import type { ColorScheme, XTerm } from "$lib/xterm";
   import { b64decode } from "@gera2ld/common";
   import type { TabInfo, TerminalTheme, WsServerMessage } from "@termcast/shared";
   import { terminalThemeSchema, TtyBuffer } from "@termcast/shared";
-  import { GlobalState } from "$lib/global.svelte";
   import "@xterm/xterm/css/xterm.css";
   import { onDestroy, onMount, untrack } from "svelte";
   import TtyBar from "./TtyBar.svelte";
@@ -149,6 +149,23 @@
     }
   });
 
+  function handleSelect() {
+    if (isGuest) {
+      connect();
+    } else {
+      globalState.ttySocket.select({ id: tab.id, onMessage: handleMessage });
+    }
+    term?.focus();
+  }
+
+  function handleLeave() {
+    if (isGuest) {
+      detach();
+    } else {
+      globalState.ttySocket.leave(tab.id);
+    }
+  }
+
   // Apply the saved terminal theme live (e.g. changed in the Appearance card while open).
   $effect(() => {
     const pref = currentPreference();
@@ -157,24 +174,15 @@
     }
   });
 
-  // Attach to the socket while active and detach when the user moves elsewhere.
+  // Attach to the socket while active and detach when the user moves elsewhere. Only `term`
+  // and `active` may re-run this: re-selecting re-attaches and re-fits the pty, and the
+  // resulting SIGWINCH makes TUI apps repaint their screen from scratch.
   $effect(() => {
     if (!term) return;
     if (active) {
-      if (isGuest) {
-        connect();
-      } else {
-        // select() reads the buffer's endOffset to compute `since`; that internal read must
-        // not make this effect re-run (and re-select) on every chunk that lands in the buffer.
-        untrack(() => globalState.ttySocket.select({ id: tab.id, onMessage: handleMessage }));
-      }
-      term.focus();
+      untrack(handleSelect);
     } else {
-      if (isGuest) {
-        detach();
-      } else {
-        globalState.ttySocket.leave(tab.id);
-      }
+      untrack(handleLeave);
     }
   });
 
