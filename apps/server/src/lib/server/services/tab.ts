@@ -29,6 +29,42 @@ const defaultPtySettings: IPtySettings = {
 
 const DETACHED_PTY_TTL = 30 * 60_000;
 
+/**
+ * The pty runs the user's shell, not the server. It gets a minimal environment so terminal
+ * identity (`KITTY_WINDOW_ID`, `TERMINFO`, `TERM_PROGRAM`, ...) and server secrets such as
+ * `GITHUB_TOKEN` never reach it. Anything else belongs in the user's own rc files.
+ */
+const INHERITED_ENV_VARS = [
+  "HOME",
+  "PATH",
+  "USER",
+  "LOGNAME",
+  "SHELL",
+  "TMPDIR",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "TZ",
+  "SSH_AUTH_SOCK",
+  "EDITOR",
+  "VISUAL",
+  "http_proxy",
+  "https_proxy",
+  "no_proxy",
+  "HTTP_PROXY",
+  "HTTPS_PROXY",
+  "NO_PROXY",
+] as const;
+
+function childEnv(): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const key of INHERITED_ENV_VARS) {
+    const value = process.env[key];
+    if (value !== undefined) env[key] = value;
+  }
+  return { ...env, TERM: "xterm-256color" };
+}
+
 function shareTokensFor(tabId: string) {
   return tokenProvider
     .entries<IShareSession>()
@@ -198,10 +234,7 @@ export class PtyHandler {
     this.ownerSettings = { allowWrite: true };
     const ptyProc = Bun.spawn(args, {
       cwd: process.env.HOME,
-      env: {
-        ...process.env,
-        TERM: "xterm-256color",
-      },
+      env: childEnv(),
       terminal: {
         cols: 80,
         rows: 24,
