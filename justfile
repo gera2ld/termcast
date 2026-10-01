@@ -46,6 +46,10 @@ test:
 smoke-ws:
     DATA_DIR="{{ DATA_DIR }}" bun run scripts/smoke-ws.ts
 
+# Compare the old JSON+base64 wire format against the current binary one
+bench-ws:
+    bun run scripts/bench-ws.ts
+
 # Type-check, lint and test everything
 ci: check test
 
