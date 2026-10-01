@@ -3,6 +3,9 @@ import { handleTerminalMessage, handleTerminalClose } from "./handlers/terminal"
 import { handleRealtimeOpen, handleRealtimeClose } from "./handlers/realtime";
 
 export const websocket: Bun.WebSocketHandler<WsData> = {
+  // Terminal frames are repetitive ANSI, so deflate is a large win on top of the compact
+  // binary encoding. Messages still go out uncompressed unless `send` opts in per message.
+  perMessageDeflate: true,
   open(ws) {
     if (ws.data.type === "terminal") {
       // Initialize per-connection state

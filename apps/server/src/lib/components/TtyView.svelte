@@ -4,9 +4,13 @@
   import { GlobalState } from "$lib/global.svelte";
   import { terminalThemes } from "$lib/themes";
   import type { ColorScheme, XTerm } from "$lib/xterm";
-  import { b64decode } from "@gera2ld/common";
-  import type { TabInfo, TerminalTheme, WsServerMessage } from "@termcast/shared";
-  import { terminalThemeSchema, TtyBuffer } from "@termcast/shared";
+  import type { TabInfo, TerminalTheme, WsClientMessage, WsServerMessage } from "@termcast/shared";
+  import {
+    decodeServerMessage,
+    encodeClientMessage,
+    terminalThemeSchema,
+    TtyBuffer,
+  } from "@termcast/shared";
   import "@xterm/xterm/css/xterm.css";
   import { onDestroy, onMount, untrack } from "svelte";
   import TtyBar from "./TtyBar.svelte";
@@ -59,35 +63,32 @@
     if (!conn) return;
     switch (msg.type) {
       case "start": {
-        const { offset, canWrite, expiresAt } = msg.data;
         const buf = buffer();
-        if (buf.size > 0 && buf.endOffset !== offset) {
+        if (buf.size > 0 && buf.endOffset !== msg.offset) {
           // The server no longer has what we have (out of sync): discard both.
-          buf.clear(offset);
+          buf.clear(msg.offset);
           term?.reset();
         }
         conn.error = undefined;
-        conn.canWrite = canWrite;
-        conn.expiresAt = expiresAt || undefined;
+        conn.canWrite = msg.canWrite;
+        conn.expiresAt = msg.expiresAt || undefined;
         conn.status = "connected";
         if (canResize && term) {
           term.fitAddon.fit();
-          send({ type: "resize", data: [term.cols, term.rows] });
+          send({ type: "resize", cols: term.cols, rows: term.rows });
         }
         lastActive = Date.now();
         break;
       }
       case "chunk": {
-        const bytes = b64decode(msg.data.chunk);
-        buffer().write(bytes, msg.data.offset);
-        term?.write(bytes);
+        buffer().write(msg.data, msg.offset);
+        term?.write(msg.data);
         lastActive = Date.now();
         break;
       }
       case "size": {
-        const [cols, rows] = msg.data;
         // Watchers mirror the owner's terminal rather than reflowing to their window.
-        if (!canResize) term?.resize(cols, rows);
+        if (!canResize) term?.resize(msg.cols, msg.rows);
         break;
       }
       case "end": {
@@ -96,31 +97,31 @@
         break;
       }
       case "access": {
-        conn.canWrite = msg.data.canWrite !== false;
-        if (msg.data.expiresAt !== undefined) conn.expiresAt = msg.data.expiresAt || undefined;
+        conn.canWrite = msg.canWrite;
+        conn.expiresAt = msg.expiresAt || undefined;
         break;
       }
       case "connections": {
-        conn.shareTokens = msg.data.tokens;
+        conn.shareTokens = msg.tokens;
         break;
       }
       case "error": {
-        conn.error = msg.data.message;
+        conn.error = msg.message;
         break;
       }
     }
   }
 
-  function send(
-    message: { type: "data"; data: string } | { type: "resize"; data: [number, number] },
-  ) {
+  function send(message: WsClientMessage) {
     lastActive = Date.now();
     if (isGuest) {
+      // Copied into a plain ArrayBuffer: the codec's views may sit on a larger buffer,
+      // which `WebSocket.send` will not accept as a `BufferSource`.
       if (socket?.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ id: tab.id, ...message }));
+        socket.send(encodeClientMessage(message).slice().buffer);
       }
     } else {
-      globalState.ttySocket.send({ id: tab.id, ...message });
+      globalState.ttySocket.send(message);
     }
   }
 
@@ -197,23 +198,24 @@
       const url = `${wsOrigin}/ws?token=${encodeURIComponent(conn.token)}`;
       conn.status = "connecting";
       const ws = new WebSocket(url);
+      // Terminal frames are binary; without this the browser hands over Blobs instead.
+      ws.binaryType = "arraybuffer";
       socket = ws;
 
       ws.addEventListener("open", () => {
         conn.wsConnected = true;
+        // A guest socket serves exactly one tab, so no pending/committed distinction:
+        // every frame that arrives belongs to this view.
         ws.send(
-          JSON.stringify({
-            id: tab.id,
-            type: "select",
-            data: { since: buffer().endOffset },
-          }),
+          encodeClientMessage({ type: "select", id: tab.id, since: buffer().endOffset }).slice()
+            .buffer,
         );
         lastActive = Date.now();
       });
       ws.addEventListener("message", (event) => {
         let msg: WsServerMessage;
         try {
-          msg = JSON.parse(event.data);
+          msg = decodeServerMessage(new Uint8Array(event.data as ArrayBuffer));
         } catch {
           return;
         }
@@ -266,7 +268,7 @@
     );
     instance.open(el);
     instance.onData((data) => send({ type: "data", data }));
-    instance.onResize(({ cols, rows }) => send({ type: "resize", data: [cols, rows] }));
+    instance.onResize(({ cols, rows }) => send({ type: "resize", cols, rows }));
     themeScheme.addEventListener("change", onSchemeChange);
     window.addEventListener("resize", handleResize, false);
     term = instance;

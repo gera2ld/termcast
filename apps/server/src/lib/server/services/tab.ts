@@ -1,5 +1,4 @@
-import { b64encode } from "@gera2ld/common";
-import { TtyBuffer, type TabInfo } from "@termcast/shared";
+import { TtyBuffer, type TabInfo, type WsServerMessage } from "@termcast/shared";
 import { nanoid } from "nanoid";
 import { bus } from "../core/events";
 import type { IShareSession } from "../core/types";
@@ -7,7 +6,7 @@ import { getCommand } from "./store";
 import { tokenProvider } from "./token";
 
 export interface IWebSocketCallbacks {
-  write(data: unknown): void;
+  write(message: WsServerMessage): void;
   end(): void;
 }
 
@@ -152,7 +151,7 @@ export class PtyHandler {
   attach(client: IPtyClient, since?: number) {
     this.clients.add(client);
     this.replayFrom(this.resolveReplayStart(since), client.callbacks);
-    client.callbacks.write({ id: this.id, type: "size", data: [this.cols, this.rows] });
+    client.callbacks.write({ type: "size", cols: this.cols, rows: this.rows });
     if (client.expiresAt && client.expiresAt > 0) {
       const remaining = Math.max(0, client.expiresAt - Date.now());
       client.timer = setTimeout(
@@ -172,7 +171,7 @@ export class PtyHandler {
 
   private evict(client: IPtyClient, message: string) {
     if (!this.clients.has(client)) return;
-    client.callbacks.write({ id: this.id, type: "error", data: { message } });
+    client.callbacks.write({ type: "error", message });
     client.callbacks.end();
     this.detach(client);
   }
@@ -187,7 +186,7 @@ export class PtyHandler {
     for (const client of this.clients) {
       if (client.token !== token) continue;
       client.allowWrite = allowWrite;
-      client.callbacks.write({ id: this.id, type: "access", data: { canWrite: allowWrite } });
+      client.callbacks.write({ type: "access", canWrite: allowWrite, expiresAt: 0 });
     }
   }
 
@@ -201,9 +200,9 @@ export class PtyHandler {
         Math.max(0, expiresAt - Date.now()),
       );
       client.callbacks.write({
-        id: this.id,
         type: "access",
-        data: { canWrite: client.allowWrite, expiresAt },
+        canWrite: client.allowWrite,
+        expiresAt,
       });
     }
   }
@@ -212,11 +211,7 @@ export class PtyHandler {
     const { pieces, startOffset } = this.buffer.slice(offset);
     let cursor = startOffset;
     for (const piece of pieces) {
-      callbacks.write({
-        id: this.id,
-        type: "chunk",
-        data: { offset: cursor, chunk: b64encode(piece) },
-      });
+      callbacks.write({ type: "chunk", offset: cursor, data: piece });
       cursor += piece.length;
     }
   }
@@ -240,10 +235,10 @@ export class PtyHandler {
         rows: 24,
         data: (_terminal, data) => {
           this.appendHistory(data);
-          const message = {
-            id: this.id,
+          const message: WsServerMessage = {
             type: "chunk",
-            data: { offset: this.buffer.endOffset - data.length, chunk: b64encode(data) },
+            offset: this.buffer.endOffset - data.length,
+            data,
           };
           for (const client of this.clients) client.callbacks.write(message);
         },
@@ -253,7 +248,7 @@ export class PtyHandler {
       this.process = undefined;
       for (const client of this.clients) {
         try {
-          client.callbacks.write({ id: this.id, type: "end" });
+          client.callbacks.write({ type: "end" });
         } finally {
           client.callbacks.end();
         }
@@ -277,8 +272,7 @@ export class PtyHandler {
     this.rows = rows;
     this.process?.terminal?.resize(columns, rows);
     for (const other of this.clients) {
-      if (other !== client)
-        other.callbacks.write({ id: this.id, type: "size", data: [columns, rows] });
+      if (other !== client) other.callbacks.write({ type: "size", cols: columns, rows: rows });
     }
   }
 
@@ -288,11 +282,7 @@ export class PtyHandler {
 
   broadcastConnectionUpdate() {
     const tokens = shareTokensFor(this.id);
-    const message = {
-      id: this.id,
-      type: "connections",
-      data: { tokens },
-    };
+    const message: WsServerMessage = { type: "connections", tokens };
     for (const client of this.clients) {
       if (client.isOwner) {
         client.callbacks.write(message);

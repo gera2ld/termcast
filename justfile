@@ -38,6 +38,17 @@ bundle-macos: build-client
 check:
     bun run --filter "*" --elide-lines=0 check && bunx oxlint && bunx oxfmt
 
+# Run the test suite
+test:
+    bun test
+
+# End-to-end smoke test for the binary /ws protocol (needs `just dev` running)
+smoke-ws:
+    DATA_DIR="{{ DATA_DIR }}" bun run scripts/smoke-ws.ts
+
+# Type-check, lint and test everything
+ci: check test
+
 # Regenerate the web theme/color CSS
 themes:
     cd apps/server && bun run themes

@@ -1,4 +1,4 @@
-import type { WsClientMessage } from "@termcast/shared";
+import { decodeClientMessage, encodeServerMessage, type WsClientMessage } from "@termcast/shared";
 import { getSettings } from "../services/settings";
 import { logError } from "../core/log";
 import {
@@ -51,6 +51,11 @@ function getConnState(ws: Bun.ServerWebSocket<WsData>): ConnState {
   return (ws as any)._connState;
 }
 
+/** Bun delivers binary frames as a Buffer and text frames as a string; the codec wants bytes. */
+function toBytes(message: string | Buffer): Uint8Array {
+  return typeof message === "string" ? new TextEncoder().encode(message) : new Uint8Array(message);
+}
+
 export function handleTerminalMessage(ws: Bun.ServerWebSocket<WsData>, message: string | Buffer) {
   const data = ws.data as TerminalWsData;
   const { access, ip } = data;
@@ -58,7 +63,7 @@ export function handleTerminalMessage(ws: Bun.ServerWebSocket<WsData>, message: 
 
   state.callbacks ||= {
     write(d) {
-      ws.send(JSON.stringify(d));
+      ws.send(encodeServerMessage(d), true);
     },
     end() {
       ws.close();
@@ -67,16 +72,20 @@ export function handleTerminalMessage(ws: Bun.ServerWebSocket<WsData>, message: 
 
   let msg: WsClientMessage;
   try {
-    msg = JSON.parse(typeof message === "string" ? message : new TextDecoder().decode(message));
+    // A malformed or truncated frame closes the socket rather than throwing: a client
+    // speaking a different protocol version must not be left streaming garbage.
+    msg = decodeClientMessage(toBytes(message));
   } catch {
+    state.callbacks.write({ type: "error", message: "Unsupported terminal protocol." });
+    state.callbacks.end();
     return;
   }
-  const { id, type } = msg;
+  const { type } = msg;
 
   if (type === "select") {
     try {
       const settings = getSettings();
-      const tabId = access.role === "owner" ? id : access.share!.payload.tabId;
+      const tabId = access.role === "owner" ? msg.id : access.share!.payload.tabId;
       if (!tabId) throw new Error("This connection is missing its tab.");
 
       const tab = tabRegistry.get(tabId);
@@ -121,17 +130,15 @@ export function handleTerminalMessage(ws: Bun.ServerWebSocket<WsData>, message: 
         throw new Error("This connection is missing its tab.");
       }
 
-      const start = state.handler.resolveReplayStart(msg.data.since);
+      const start = state.handler.resolveReplayStart(msg.since);
       state.callbacks.write({
-        id: state.handler.id,
         type: "start",
-        data: {
-          offset: start,
-          canWrite: state.client.allowWrite,
-          expiresAt: state.client.expiresAt ?? 0,
-        },
+        id: state.handler.id,
+        offset: start,
+        canWrite: state.client.allowWrite,
+        expiresAt: state.client.expiresAt ?? 0,
       });
-      state.handler.attach(state.client, msg.data.since);
+      state.handler.attach(state.client, msg.since);
       state.handler.broadcastConnectionUpdate();
 
       if (!state.notifiedStarted) {
@@ -144,18 +151,15 @@ export function handleTerminalMessage(ws: Bun.ServerWebSocket<WsData>, message: 
     } catch (err) {
       state.handler = undefined;
       state.client = undefined;
-      state.callbacks!.write({
-        id,
-        type: "error",
-        data: { message: (err as Error).message },
-      });
+      state.callbacks!.write({ type: "error", message: (err as Error).message });
       state.callbacks!.end();
     }
     return;
   }
 
   if (type === "leave") {
-    if (state.handler && state.client && state.handler.id === id) {
+    // The socket is bound to one tab, so a leave always refers to the attached handler.
+    if (state.handler && state.client) {
       state.handler.detach(state.client);
       state.handler.broadcastConnectionUpdate();
       state.handler = undefined;
@@ -168,8 +172,7 @@ export function handleTerminalMessage(ws: Bun.ServerWebSocket<WsData>, message: 
 
   switch (type) {
     case "resize": {
-      const [columns, rows] = msg.data;
-      state.handler.resize(columns, rows, state.client);
+      state.handler.resize(msg.cols, msg.rows, state.client);
       break;
     }
     case "data": {

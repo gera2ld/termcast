@@ -11,6 +11,26 @@ import {
   userInfoSchema,
 } from "./schemas";
 
+/** Opcodes for the binary `/ws` terminal channel. */
+export const ServerOp = {
+  Start: 0x01,
+  Chunk: 0x02,
+  Size: 0x03,
+  End: 0x04,
+  Error: 0x05,
+  Access: 0x06,
+  Connections: 0x07,
+} as const;
+export type ServerOp = (typeof ServerOp)[keyof typeof ServerOp];
+
+export const ClientOp = {
+  Select: 0x01,
+  Leave: 0x02,
+  Data: 0x03,
+  Resize: 0x04,
+} as const;
+export type ClientOp = (typeof ClientOp)[keyof typeof ClientOp];
+
 export const tabInfoSchema = z.object({
   id: z.string(),
   commandId: z.string().nullish(),
@@ -55,27 +75,33 @@ export interface WsShareToken {
 }
 
 /**
- * Wire protocol for `/ws`. Every message is tagged with the tab `id` it belongs to, so the
- * client can route (or drop) messages even while switching. `offset` is a cumulative byte
- * position in the pty's output stream: each `chunk` reports the offset its bytes *start at*
- * (so chunk ranges are `[offset, offset + len)`), a `start` reports the resume position, and
- * a client resumes by sending `select { since }` with the last offset it has rendered.
+ * Wire protocol for `/ws`, serialized by `ws-protocol.ts` as `[u8 opcode][fields]`, with
+ * each direction negotiated once on the upgrade and never renegotiated.
+ *
+ * The socket is the routing key: a connection is bound to exactly one tab from the moment
+ * its `select` is answered, so only `select` and `start` name a tab and the remaining
+ * messages do not repeat it. `offset` is a cumulative byte position in the pty's output
+ * stream: each `chunk` reports the offset its bytes *start at* (so chunk ranges are
+ * `[offset, offset + len)`), a `start` reports the resume position, and a client resumes by
+ * sending `select { since }` with the last offset it has rendered.
+ *
+ * `expiresAt` is always present; `0` means the session never expires.
  */
 export type WsClientMessage =
-  | { id: string; type: "select"; data: { since: number } }
-  | { id: string; type: "leave" }
-  | { id: string; type: "data"; data: string }
-  | { id: string; type: "resize"; data: [number, number] };
+  | { type: "select"; id: string; since: number }
+  | { type: "leave" }
+  | { type: "data"; data: string }
+  | { type: "resize"; cols: number; rows: number };
 
 /** Messages the server sends over `/ws`. */
 export type WsServerMessage =
-  | { id: string; type: "start"; data: { offset: number; canWrite: boolean; expiresAt: number } }
-  | { id: string; type: "chunk"; data: { offset: number; chunk: string } }
-  | { id: string; type: "size"; data: [number, number] }
-  | { id: string; type: "end" }
-  | { id: string; type: "error"; data: { message: string } }
-  | { id: string; type: "access"; data: { canWrite: boolean; expiresAt?: number } }
-  | { id: string; type: "connections"; data: { tokens: WsShareToken[] } };
+  | { type: "start"; id: string; offset: number; canWrite: boolean; expiresAt: number }
+  | { type: "chunk"; offset: number; data: Uint8Array }
+  | { type: "size"; cols: number; rows: number }
+  | { type: "end" }
+  | { type: "error"; message: string }
+  | { type: "access"; canWrite: boolean; expiresAt: number }
+  | { type: "connections"; tokens: WsShareToken[] };
 
 /**
  * Internal, in-process event bus map. State mutations emit here; `realtime.ts` subscribes once and
