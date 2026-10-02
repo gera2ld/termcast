@@ -56,6 +56,15 @@ function toBytes(message: string | Buffer): Uint8Array {
   return typeof message === "string" ? new TextEncoder().encode(message) : new Uint8Array(message);
 }
 
+/**
+ * Frames below this are sent uncompressed. Bun negotiates `permessage-deflate` without
+ * context takeover, so every message is compressed on its own and RFC 7692 adds 8 bytes of
+ * framing on top. A short frame therefore comes out *larger* than it went in — measured
+ * crossover on typical ANSI output is ~40 bytes, below which compression is pure overhead.
+ * See `just bench-ws`.
+ */
+const MIN_COMPRESS_BYTES = 40;
+
 export function handleTerminalMessage(ws: Bun.ServerWebSocket<WsData>, message: string | Buffer) {
   const data = ws.data as TerminalWsData;
   const { access, ip } = data;
@@ -63,7 +72,8 @@ export function handleTerminalMessage(ws: Bun.ServerWebSocket<WsData>, message: 
 
   state.callbacks ||= {
     write(d) {
-      ws.send(encodeServerMessage(d), true);
+      const frame = encodeServerMessage(d);
+      ws.send(frame, frame.byteLength >= MIN_COMPRESS_BYTES);
     },
     end() {
       ws.close();
