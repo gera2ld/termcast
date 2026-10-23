@@ -18,7 +18,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   return resolve(event);
 };
 
-export { websocket };
+// The CLI calls these directly so WebSocket upgrades see the original Bun request.
+export { tryUpgrade, websocket };
 
 export async function init() {
   try {

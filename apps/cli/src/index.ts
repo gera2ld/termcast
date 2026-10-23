@@ -33,6 +33,34 @@ async function startServer() {
     );
     process.exit(1);
   }
+
+  // @sveltejs/adapter-bun does not pass a `websocket` handler to Bun.serve, and it only
+  // gives SvelteKit the normalized request rather than the original one Bun handed to
+  // `fetch`, so `server.upgrade()` cannot be called from the handle hook. Handle upgrades
+  // here with the original request before delegating to the adapter's fetch handler.
+  const hooksEntry = join(buildDir, "server", "entries", "hooks.server.js");
+  if (existsSync(hooksEntry)) {
+    type ServeOptions = Parameters<typeof Bun.serve>[0];
+    type FetchHandler = NonNullable<ServeOptions["fetch"]>;
+    type BunServer = Parameters<FetchHandler>[1];
+    const { websocket, tryUpgrade } = (await import(hooksEntry)) as {
+      websocket?: ServeOptions["websocket"];
+      tryUpgrade?: (req: Request, server: BunServer) => Response | null;
+    };
+    if (websocket && tryUpgrade) {
+      const serve = Bun.serve;
+      Bun.serve = ((options: ServeOptions) => {
+        const fetchHandler = options.fetch;
+        if (!fetchHandler) return serve({ ...options, websocket } as ServeOptions);
+        return serve({
+          ...options,
+          fetch: (req, server) => tryUpgrade(req, server) ?? fetchHandler.call(server, req, server),
+          websocket,
+        } as ServeOptions);
+      }) as typeof Bun.serve;
+    }
+  }
+
   await import(indexJs);
   // Give the server a moment to bind.
   await new Promise((r) => setTimeout(r, 300));
