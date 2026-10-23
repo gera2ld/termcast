@@ -1,13 +1,13 @@
 <script lang="ts">
   import { generateSessionKey } from "@termcast/shared";
-  import { Button } from "$lib/components/ui/button";
-  import * as Dialog from "$lib/components/ui/dialog";
-  import * as Field from "$lib/components/ui/field";
-  import { Input } from "$lib/components/ui/input";
-  import * as InputGroup from "$lib/components/ui/input-group";
-  import { Separator } from "$lib/components/ui/separator";
-  import { Spinner } from "$lib/components/ui/spinner";
-  import { GlobalState } from "$lib/global.svelte";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import * as Dialog from "#lib/components/ui/dialog/index.js";
+  import * as Field from "#lib/components/ui/field/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import * as InputGroup from "#lib/components/ui/input-group/index.js";
+  import { Separator } from "#lib/components/ui/separator/index.js";
+  import { Spinner } from "#lib/components/ui/spinner/index.js";
+  import { GlobalState } from "#lib/global.svelte.js";
   import { toast } from "svelte-sonner";
 
   type SetupMode = "setup" | "reset";

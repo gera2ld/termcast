@@ -5,9 +5,9 @@
     CardDescription,
     CardHeader,
     CardTitle,
-  } from "$lib/components/ui/card";
-  import { ToggleGroup, ToggleGroupItem } from "$lib/components/ui/toggle-group";
-  import { GlobalState } from "$lib/global.svelte";
+  } from "#lib/components/ui/card/index.js";
+  import { ToggleGroup, ToggleGroupItem } from "#lib/components/ui/toggle-group/index.js";
+  import { GlobalState } from "#lib/global.svelte.js";
   import { toast } from "svelte-sonner";
   import type { TerminalTheme } from "@termcast/shared";
 

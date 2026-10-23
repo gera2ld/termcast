@@ -1,5 +1,5 @@
 <script lang="ts">
-  import * as InputGroup from "$lib/components/ui/input-group";
+  import * as InputGroup from "#lib/components/ui/input-group/index.js";
   import { CopyIcon, CheckIcon } from "@lucide/svelte";
   import { toast } from "svelte-sonner";
 

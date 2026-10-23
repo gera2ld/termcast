@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { statusInfo } from "$lib/util";
-  import type { TtyStatus } from "$lib/types";
+  import { statusInfo } from "#lib/util.js";
+  import type { TtyStatus } from "#lib/types.js";
 
   let { status, wsConnected = true }: { status: TtyStatus; wsConnected?: boolean } = $props();
 

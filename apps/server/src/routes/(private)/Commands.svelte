@@ -1,9 +1,9 @@
 <script lang="ts">
-  import * as AlertDialog from "$lib/components/ui/alert-dialog";
-  import { Button } from "$lib/components/ui/button";
-  import * as Table from "$lib/components/ui/table";
-  import Pagination, { PAGE_SIZE } from "$lib/components/Pagination.svelte";
-  import { GlobalState } from "$lib/global.svelte";
+  import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import * as Table from "#lib/components/ui/table/index.js";
+  import Pagination, { PAGE_SIZE } from "#lib/components/Pagination.svelte";
+  import { GlobalState } from "#lib/global.svelte.js";
   import { formatArgs, type Command } from "@termcast/shared";
   import { nanoid } from "nanoid";
   import { toast } from "svelte-sonner";

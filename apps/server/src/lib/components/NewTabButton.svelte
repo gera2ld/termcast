@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { Button } from "$lib/components/ui/button";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-  import { GlobalState } from "$lib/global.svelte";
-  import { orpc } from "$lib/orpc-client";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
+  import { GlobalState } from "#lib/global.svelte.js";
+  import { orpc } from "#lib/orpc-client.js";
   import { formatArgs, type Command } from "@termcast/shared";
   import { toast } from "svelte-sonner";
   import { PlusIcon } from "@lucide/svelte";

@@ -1,4 +1,4 @@
-import { goto, replaceState } from "$app/navigation";
+import { goto } from "$app/navigation";
 import { page } from "$app/state";
 import { ORPCError } from "@orpc/client";
 import type {
@@ -60,7 +60,7 @@ export class GlobalState {
         setToken(token);
         params.delete("grant");
         const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}${window.location.hash}`;
-        replaceState(next, {});
+        goto(next, { shallow: true, replace: true });
         return;
       } catch {
         // Invalid, expired, or already-used grant — fall through to untrusted.

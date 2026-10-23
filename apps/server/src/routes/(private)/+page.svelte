@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Alert, AlertDescription } from "$lib/components/ui/alert";
-  import { Button } from "$lib/components/ui/button";
-  import { GlobalState } from "$lib/global.svelte";
+  import { Alert, AlertDescription } from "#lib/components/ui/alert/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { GlobalState } from "#lib/global.svelte.js";
   import { InfoIcon } from "@lucide/svelte";
   import Appearance from "./Appearance.svelte";
   import Commands from "./Commands.svelte";

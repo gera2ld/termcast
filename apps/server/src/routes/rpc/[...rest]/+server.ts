@@ -3,8 +3,8 @@ import { RPCHandler } from "@orpc/server/fetch";
 import type { Interceptor } from "@orpc/shared";
 import type { RequestEvent } from "@sveltejs/kit";
 import type { InitialContext } from "@termcast/shared";
-import { router } from "$lib/server/orpc/router";
-import { logError } from "$lib/server/core/log";
+import { router } from "#lib/server/orpc/router.js";
+import { logError } from "#lib/server/core/log.js";
 import { z } from "zod";
 
 const formatValidationError: Interceptor<any, any> = async (options) => {

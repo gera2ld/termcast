@@ -1,8 +1,8 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import TtyView from "$lib/components/TtyView.svelte";
-  import { GlobalState } from "$lib/global.svelte";
-  import { labelFor } from "$lib/util";
+  import TtyView from "#lib/components/TtyView.svelte";
+  import { GlobalState } from "#lib/global.svelte.js";
+  import { labelFor } from "#lib/util.js";
 
   const { children } = $props();
 

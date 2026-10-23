@@ -1,11 +1,11 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import TtyView from "$lib/components/TtyView.svelte";
-  import StatusDot from "$lib/components/StatusDot.svelte";
-  import { Badge } from "$lib/components/ui/badge";
-  import { GlobalState } from "$lib/global.svelte";
-  import { SHARE_VIEW } from "$lib/routes";
-  import { formatTimeLeft } from "$lib/util";
+  import TtyView from "#lib/components/TtyView.svelte";
+  import StatusDot from "#lib/components/StatusDot.svelte";
+  import { Badge } from "#lib/components/ui/badge/index.js";
+  import { GlobalState } from "#lib/global.svelte.js";
+  import { SHARE_VIEW } from "#lib/routes.js";
+  import { formatTimeLeft } from "#lib/util.js";
   import type { TabInfo } from "@termcast/shared";
 
   const globalState = GlobalState.get();

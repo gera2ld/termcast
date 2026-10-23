@@ -1,11 +1,11 @@
-import type { Handle } from "@sveltejs/kit";
-import type { WsData } from "$lib/server/handlers/terminal";
-import { tryUpgrade, websocket } from "$lib/server/ws";
-import { PORT } from "$lib/server/core/config";
-import { getSettings, needsSetup } from "$lib/server/services/settings";
+import type { Handle } from "@sveltejs/kit/hooks";
+import type { WsData } from "#lib/server/handlers/terminal.js";
+import { tryUpgrade, websocket } from "#lib/server/ws.js";
+import { PORT } from "#lib/server/core/config.js";
+import { getSettings, needsSetup } from "#lib/server/services/settings.js";
 import { signGrantToken } from "@termcast/shared/server";
-import { startTunnel, stopTunnel } from "$lib/server/services/cloudflared";
-import { tabRegistry } from "$lib/server/services/tab";
+import { startTunnel, stopTunnel } from "#lib/server/services/cloudflared.js";
+import { tabRegistry } from "#lib/server/services/tab.js";
 
 export const handle: Handle = async ({ event, resolve }) => {
   const platform = event.platform as { server?: Bun.Server<WsData>; request?: Request } | undefined;

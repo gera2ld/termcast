@@ -1,11 +1,11 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
-  import NewTabButton from "$lib/components/NewTabButton.svelte";
-  import StatusDot from "$lib/components/StatusDot.svelte";
-  import { Button } from "$lib/components/ui/button";
-  import { GlobalState } from "$lib/global.svelte";
-  import { labelFor } from "$lib/util";
+  import NewTabButton from "#lib/components/NewTabButton.svelte";
+  import StatusDot from "#lib/components/StatusDot.svelte";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { GlobalState } from "#lib/global.svelte.js";
+  import { labelFor } from "#lib/util.js";
   import { XIcon } from "@lucide/svelte";
 
   const { children } = $props();

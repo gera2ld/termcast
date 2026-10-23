@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { GlobalState } from "$lib/global.svelte";
+  import { GlobalState } from "#lib/global.svelte.js";
 
   const globalState = GlobalState.get();
   const tab = $derived(globalState.tabs.find((t) => t.id === page.params.id));

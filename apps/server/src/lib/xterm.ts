@@ -6,7 +6,7 @@ import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal, type ITerminalInitOnlyOptions, type ITerminalOptions } from "@xterm/xterm";
-import { terminalThemes } from "$lib/themes";
+import { terminalThemes } from "#lib/themes.js";
 
 export type ColorScheme = keyof typeof terminalThemes;
 

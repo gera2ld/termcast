@@ -1,14 +1,14 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { Alert, AlertDescription } from "$lib/components/ui/alert";
-  import { Button } from "$lib/components/ui/button";
-  import * as Dialog from "$lib/components/ui/dialog";
-  import * as Field from "$lib/components/ui/field";
-  import { Input } from "$lib/components/ui/input";
-  import { Spinner } from "$lib/components/ui/spinner";
-  import { GlobalState } from "@/lib/global.svelte";
-  import { orpc, setToken } from "$lib/orpc-client";
-  import { handleAuthentication, loading } from "$lib/webauthn";
+  import { Alert, AlertDescription } from "#lib/components/ui/alert/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import * as Dialog from "#lib/components/ui/dialog/index.js";
+  import * as Field from "#lib/components/ui/field/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Spinner } from "#lib/components/ui/spinner/index.js";
+  import { GlobalState } from "#lib/global.svelte.js";
+  import { orpc, setToken } from "#lib/orpc-client.js";
+  import { handleAuthentication, loading } from "#lib/webauthn.js";
   import { ORPCError } from "@orpc/client";
   import { toast } from "svelte-sonner";
   import { CircleAlertIcon } from "@lucide/svelte";

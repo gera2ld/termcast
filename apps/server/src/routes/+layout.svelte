@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Spinner } from "$lib/components/ui/spinner";
-  import { Toaster } from "$lib/components/ui/sonner";
-  import { GlobalState } from "$lib/global.svelte";
+  import { Spinner } from "#lib/components/ui/spinner/index.js";
+  import { Toaster } from "#lib/components/ui/sonner/index.js";
+  import { GlobalState } from "#lib/global.svelte.js";
   import type { Snippet } from "svelte";
 
   const { children }: { children?: Snippet } = $props();

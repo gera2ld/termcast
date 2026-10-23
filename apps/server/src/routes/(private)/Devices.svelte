@@ -1,15 +1,15 @@
 <script lang="ts">
-  import CopyLink from "$lib/components/CopyLink.svelte";
-  import Pagination, { PAGE_SIZE } from "$lib/components/Pagination.svelte";
-  import { Alert, AlertDescription } from "$lib/components/ui/alert";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog";
-  import { Button } from "$lib/components/ui/button";
-  import * as Field from "$lib/components/ui/field";
-  import { Input } from "$lib/components/ui/input";
-  import * as Table from "$lib/components/ui/table";
-  import { GlobalState } from "$lib/global.svelte";
-  import { orpc } from "$lib/orpc-client";
-  import { handleRegister, loading, registerRequested } from "$lib/webauthn";
+  import CopyLink from "#lib/components/CopyLink.svelte";
+  import Pagination, { PAGE_SIZE } from "#lib/components/Pagination.svelte";
+  import { Alert, AlertDescription } from "#lib/components/ui/alert/index.js";
+  import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import * as Field from "#lib/components/ui/field/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import * as Table from "#lib/components/ui/table/index.js";
+  import { GlobalState } from "#lib/global.svelte.js";
+  import { orpc } from "#lib/orpc-client.js";
+  import { handleRegister, loading, registerRequested } from "#lib/webauthn.js";
   import { toast } from "svelte-sonner";
   import { CircleAlertIcon } from "@lucide/svelte";
   import type { DeviceInfo } from "@termcast/shared";

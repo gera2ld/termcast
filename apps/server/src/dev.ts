@@ -3,10 +3,10 @@ import { RPCHandler } from "@orpc/server/fetch";
 import type { Interceptor } from "@orpc/shared";
 import type { InitialContext } from "@termcast/shared";
 import { z } from "zod";
-import { logError } from "$lib/server/core/log";
-import { PORT } from "$lib/server/core/config";
-import { router } from "$lib/server/orpc/router";
-import { tryUpgrade, websocket } from "$lib/server/ws";
+import { logError } from "#lib/server/core/log.js";
+import { PORT } from "#lib/server/core/config.js";
+import { router } from "#lib/server/orpc/router.js";
+import { tryUpgrade, websocket } from "#lib/server/ws.js";
 
 const formatValidationError: Interceptor<any, any> = async (options) => {
   try {

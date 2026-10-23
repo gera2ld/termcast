@@ -1,18 +1,18 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Alert, AlertDescription } from "$lib/components/ui/alert";
-  import { Button } from "$lib/components/ui/button";
+  import { Alert, AlertDescription } from "#lib/components/ui/alert/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
   import {
     Card,
     CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
-  } from "$lib/components/ui/card";
-  import * as Field from "$lib/components/ui/field";
-  import { Spinner } from "$lib/components/ui/spinner";
-  import { Switch } from "$lib/components/ui/switch";
-  import { GlobalState } from "$lib/global.svelte";
+  } from "#lib/components/ui/card/index.js";
+  import * as Field from "#lib/components/ui/field/index.js";
+  import { Spinner } from "#lib/components/ui/spinner/index.js";
+  import { Switch } from "#lib/components/ui/switch/index.js";
+  import { GlobalState } from "#lib/global.svelte.js";
   import { toast } from "svelte-sonner";
   import { DownloadIcon, InfoIcon } from "@lucide/svelte";
 

@@ -1,17 +1,17 @@
 <script lang="ts">
-  import CopyLink from "$lib/components/CopyLink.svelte";
-  import Pagination from "$lib/components/Pagination.svelte";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog";
-  import { Button } from "$lib/components/ui/button";
-  import * as ButtonGroup from "$lib/components/ui/button-group";
-  import * as Dialog from "$lib/components/ui/dialog";
-  import { Input } from "$lib/components/ui/input";
-  import * as Select from "$lib/components/ui/select";
-  import * as Table from "$lib/components/ui/table";
-  import { formatTimeLeft } from "$lib/util";
-  import { GlobalState } from "$lib/global.svelte";
-  import { TabState } from "$lib/tabs.svelte";
-  import type { IShareToken } from "$lib/types";
+  import CopyLink from "#lib/components/CopyLink.svelte";
+  import Pagination from "#lib/components/Pagination.svelte";
+  import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import * as ButtonGroup from "#lib/components/ui/button-group/index.js";
+  import * as Dialog from "#lib/components/ui/dialog/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import * as Select from "#lib/components/ui/select/index.js";
+  import * as Table from "#lib/components/ui/table/index.js";
+  import { formatTimeLeft } from "#lib/util.js";
+  import { GlobalState } from "#lib/global.svelte.js";
+  import { TabState } from "#lib/tabs.svelte.js";
+  import type { IShareToken } from "#lib/types.js";
   import type { TabInfo } from "@termcast/shared";
 
   const globalState = GlobalState.get();

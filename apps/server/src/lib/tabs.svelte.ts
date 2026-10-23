@@ -1,5 +1,5 @@
-import { orpc } from "$lib/orpc-client";
-import type { IShareToken } from "$lib/types";
+import { orpc } from "#lib/orpc-client.js";
+import type { IShareToken } from "#lib/types.js";
 
 export class TabState {
   async listShareTokens(tabId: string) {

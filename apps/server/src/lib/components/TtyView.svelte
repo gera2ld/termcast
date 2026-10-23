@@ -1,9 +1,9 @@
 <script lang="ts">
   import { afterNavigate } from "$app/navigation";
-  import { loadingFonts } from "$lib/font";
-  import { GlobalState } from "$lib/global.svelte";
-  import { terminalThemes } from "$lib/themes";
-  import type { ColorScheme, XTerm } from "$lib/xterm";
+  import { loadingFonts } from "#lib/font.js";
+  import { GlobalState } from "#lib/global.svelte.js";
+  import { terminalThemes } from "#lib/themes.js";
+  import type { ColorScheme, XTerm } from "#lib/xterm.js";
   import type { TabInfo, TerminalTheme, WsClientMessage, WsServerMessage } from "@termcast/shared";
   import {
     decodeServerMessage,
@@ -131,7 +131,8 @@
 
   // SvelteKit resets focus once a navigation completes, and switching tabs is one, so
   // the terminal has to take focus back afterwards.
-  afterNavigate(() => {
+  afterNavigate(({ shallow, type }) => {
+    if (shallow && type === "goto") return;
     if (active) term?.focus();
   });
 
@@ -243,7 +244,7 @@
   }
 
   onMount(async () => {
-    const { XTerm } = await import("$lib/xterm");
+    const { XTerm } = await import("#lib/xterm.js");
     const fontFamily = await loadingFonts;
     themeScheme = matchMedia("(prefers-color-scheme: dark)");
     let initial = currentPreference();
