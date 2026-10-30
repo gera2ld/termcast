@@ -3,31 +3,28 @@
   import { loadingFonts } from "#lib/font.js";
   import { GlobalState } from "#lib/global.svelte.js";
   import { terminalThemes } from "#lib/themes.js";
+  import type { TtySocket } from "#lib/tty-socket.js";
   import type { ColorScheme, XTerm } from "#lib/xterm.js";
-  import type { TabInfo, TerminalTheme, WsClientMessage, WsServerMessage } from "@termcast/shared";
-  import {
-    decodeServerMessage,
-    encodeClientMessage,
-    terminalThemeSchema,
-    TtyBuffer,
-  } from "@termcast/shared";
+  import type { TabInfo, TerminalTheme } from "@termcast/shared";
+  import { terminalThemeSchema } from "@termcast/shared";
   import "@xterm/xterm/css/xterm.css";
-  import { onDestroy, onMount, untrack } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import TtyBar from "./TtyBar.svelte";
 
   const globalState = GlobalState.get();
 
-  let { tab, active }: { tab: TabInfo; active: boolean } = $props();
+  let { tab, active, socket }: { tab: TabInfo; active: boolean; socket: TtySocket } = $props();
 
   let el: HTMLElement;
   let term = $state<XTerm | undefined>(undefined);
-  let ended = false;
-  let lastActive = 0;
+  let unmount: (() => void) | undefined;
   let themeScheme: MediaQueryList;
+  /** A watcher may be allowed to type, but never owns the size: it mirrors the owner's. */
+  const canResize = $derived(socket.isOwner);
   /** Owner preference comes from dashboard settings; guests mirror it via /api/appearance. */
   let guestPreference = $state<TerminalTheme>(terminalThemeSchema.parse(undefined));
   function currentPreference(): TerminalTheme | undefined {
-    if (globalState.connections[tab.id]?.token) return guestPreference;
+    if (!socket.isOwner) return guestPreference;
     return globalState.settings?.terminalTheme;
   }
   function resolveScheme(pref: TerminalTheme, matches: boolean): ColorScheme {
@@ -37,93 +34,8 @@
     if (!term || currentPreference() !== "auto") return;
     term.options.theme = terminalThemes[event.matches ? "dark" : "light"];
   };
-  /** Guest-only socket; the owner shares one multiplexed socket via `globalState.ttySocket`. */
-  let socket: WebSocket | undefined;
-  let connecting = false;
-  /** Whether this view already re-rendered its buffer into the terminal (once per mount). */
-  let started = false;
-
-  /** A guest joined with a share link (has a token); otherwise this is the owner. */
-  const isGuest = $derived(!!globalState.connections[tab.id]?.token);
-  /** A watcher may be allowed to type, but never owns the size: it mirrors the owner's. */
-  const canResize = $derived(!globalState.connections[tab.id]?.token);
   /** Reactive view of the web-local connection state for this tab. */
   const connView = $derived(globalState.connections[tab.id]);
-
-  /** The FE buffer store for this tab, created on first use. */
-  function buffer(): TtyBuffer {
-    const conn = globalState.connections[tab.id];
-    if (!conn) throw new Error("Connection state missing for tab");
-    return (conn.buffer ??= new TtyBuffer());
-  }
-
-  /** Handles a server message, keeping the FE buffer in sync with the server's. */
-  function handleMessage(msg: WsServerMessage) {
-    const conn = globalState.connections[tab.id];
-    if (!conn) return;
-    switch (msg.type) {
-      case "start": {
-        const buf = buffer();
-        if (buf.size > 0 && buf.endOffset !== msg.offset) {
-          // The server no longer has what we have (out of sync): discard both.
-          buf.clear(msg.offset);
-          term?.reset();
-        }
-        conn.error = undefined;
-        conn.canWrite = msg.canWrite;
-        conn.expiresAt = msg.expiresAt || undefined;
-        conn.status = "connected";
-        if (canResize && term) {
-          term.fitAddon.fit();
-          send({ type: "resize", cols: term.cols, rows: term.rows });
-        }
-        lastActive = Date.now();
-        break;
-      }
-      case "chunk": {
-        buffer().write(msg.data, msg.offset);
-        term?.write(msg.data);
-        lastActive = Date.now();
-        break;
-      }
-      case "size": {
-        // Watchers mirror the owner's terminal rather than reflowing to their window.
-        if (!canResize) term?.resize(msg.cols, msg.rows);
-        break;
-      }
-      case "end": {
-        ended = true;
-        conn.status = "disconnected";
-        break;
-      }
-      case "access": {
-        conn.canWrite = msg.canWrite;
-        conn.expiresAt = msg.expiresAt || undefined;
-        break;
-      }
-      case "connections": {
-        conn.shareTokens = msg.tokens;
-        break;
-      }
-      case "error": {
-        conn.error = msg.message;
-        break;
-      }
-    }
-  }
-
-  function send(message: WsClientMessage) {
-    lastActive = Date.now();
-    if (isGuest) {
-      // Copied into a plain ArrayBuffer: the codec's views may sit on a larger buffer,
-      // which `WebSocket.send` will not accept as a `BufferSource`.
-      if (socket?.readyState === WebSocket.OPEN) {
-        socket.send(encodeClientMessage(message).slice().buffer);
-      }
-    } else {
-      globalState.ttySocket.send(message);
-    }
-  }
 
   function handleResize() {
     if (active && canResize) term?.fitAddon.fit();
@@ -136,37 +48,9 @@
     if (active) term?.focus();
   });
 
-  /** Once per mount: re-render any buffered scrollback into the fresh terminal. The view
-   * stays mounted across tab switches (see tty/+layout.svelte), so this only runs for a
-   * genuinely fresh terminal, never when returning to an already-rendered tab. */
   $effect(() => {
-    if (!term || started) return;
-    started = true;
-    if (isGuest) return;
-    const buf = connView?.buffer;
-    if (buf?.size) {
-      term.reset();
-      for (const piece of buf.slice().pieces) term.write(piece);
-      if (canResize) term.fitAddon.fit();
-    }
+    if (active) term?.focus();
   });
-
-  function handleSelect() {
-    if (isGuest) {
-      connect();
-    } else {
-      globalState.ttySocket.select({ id: tab.id, onMessage: handleMessage });
-    }
-    term?.focus();
-  }
-
-  function handleLeave() {
-    if (isGuest) {
-      detach();
-    } else {
-      globalState.ttySocket.leave(tab.id);
-    }
-  }
 
   // Apply the saved terminal theme live (e.g. changed in the Appearance card while open).
   $effect(() => {
@@ -176,79 +60,12 @@
     }
   });
 
-  // Attach to the socket while active and detach when the user moves elsewhere. Only `term`
-  // and `active` may re-run this: re-selecting re-attaches and re-fits the pty, and the
-  // resulting SIGWINCH makes TUI apps repaint their screen from scratch.
-  $effect(() => {
-    if (!term) return;
-    if (active) {
-      untrack(handleSelect);
-    } else {
-      untrack(handleLeave);
-    }
-  });
-
-  async function connect() {
-    if (!term || socket || connecting || !isGuest) return;
-    connecting = true;
-    ended = false;
-    const conn = globalState.connections[tab.id];
-    if (!conn?.token) return;
-    try {
-      const wsOrigin = window.location.origin.replace(/^http/, "ws");
-      const url = `${wsOrigin}/ws?token=${encodeURIComponent(conn.token)}`;
-      conn.status = "connecting";
-      const ws = new WebSocket(url);
-      // Terminal frames are binary; without this the browser hands over Blobs instead.
-      ws.binaryType = "arraybuffer";
-      socket = ws;
-
-      ws.addEventListener("open", () => {
-        conn.wsConnected = true;
-        // A guest socket serves exactly one tab, so no pending/committed distinction:
-        // every frame that arrives belongs to this view.
-        ws.send(
-          encodeClientMessage({ type: "select", id: tab.id, since: buffer().endOffset }).slice()
-            .buffer,
-        );
-        lastActive = Date.now();
-      });
-      ws.addEventListener("message", (event) => {
-        let msg: WsServerMessage;
-        try {
-          msg = decodeServerMessage(new Uint8Array(event.data as ArrayBuffer));
-        } catch {
-          return;
-        }
-        handleMessage(msg);
-      });
-      ws.addEventListener("close", () => {
-        if (socket !== ws) return;
-        socket = undefined;
-        conn.wsConnected = false;
-        // Only worth retrying for a tab the user is looking at.
-        if (!ended && !conn.error && lastActive + 60_000 >= Date.now()) {
-          setTimeout(connect, 1000);
-        }
-      });
-    } catch {
-      conn.wsConnected = false;
-    } finally {
-      connecting = false;
-    }
-  }
-
-  function detach() {
-    socket?.close();
-    socket = undefined;
-  }
-
   onMount(async () => {
     const { XTerm } = await import("#lib/xterm.js");
     const fontFamily = await loadingFonts;
     themeScheme = matchMedia("(prefers-color-scheme: dark)");
     let initial = currentPreference();
-    if (globalState.connections[tab.id]?.token) {
+    if (!socket.isOwner) {
       try {
         const res = await fetch("/api/appearance");
         const data = (await res.json()) as { terminalTheme?: unknown };
@@ -268,24 +85,28 @@
       resolveScheme(initial, themeScheme.matches),
     );
     instance.open(el);
-    instance.onData((data) => send({ type: "data", data }));
-    instance.onResize(({ cols, rows }) => send({ type: "resize", cols, rows }));
+    instance.onData((data) => socket.input(tab.id, data));
+    instance.onResize(({ cols, rows }) => socket.resize(tab.id, cols, rows));
     themeScheme.addEventListener("change", onSchemeChange);
     window.addEventListener("resize", handleResize, false);
     term = instance;
+    unmount = socket.mount(tab.id, {
+      write: (data) => instance.write(data),
+      reset: () => instance.reset(),
+      fit: () => {
+        instance.fitAddon.fit();
+        return { cols: instance.cols, rows: instance.rows };
+      },
+      resize: (cols, rows) => instance.resize(cols, rows),
+    });
   });
 
   onDestroy(() => {
     themeScheme?.removeEventListener("change", onSchemeChange);
     window.removeEventListener("resize", handleResize, false);
-    if (isGuest) {
-      // Drops the socket only: the pty stays alive so a tab survives navigation, and is
-      // disposed by tabs.close when the user closes the tab.
-      detach();
-    } else {
-      globalState.ttySocket.leave(tab.id);
-    }
-    const conn = globalState.connections[tab.id];
+    // Only the view goes: the pty stays alive so a tab survives navigation, and is
+    // disposed by tabs.close when the user closes the tab.
+    unmount?.();
     try {
       term?.dispose();
     } catch {

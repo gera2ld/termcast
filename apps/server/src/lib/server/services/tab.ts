@@ -205,14 +205,12 @@ export class PtyHandler {
         remaining,
       );
     }
-    this.onChange?.();
   }
 
   detach(client: IPtyClient) {
     clearTimeout(client.timer);
     this.clients.delete(client);
     if (!this.clients.size) this.scheduleDestroy();
-    this.onChange?.();
   }
 
   private evict(client: IPtyClient, message: string) {

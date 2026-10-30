@@ -40,7 +40,7 @@ export class GlobalState {
   commands = $state<Command[]>([]);
 
   /** Shared owner WebSocket multiplexing all tabs (see TtySocket). */
-  ttySocket = new TtySocket(this);
+  ttySocket = new TtySocket(this, { role: "owner" });
 
   /** Whether the owner's shared WebSocket is connected (drives status-dot opacity). */
   wsConnected = $state(false);

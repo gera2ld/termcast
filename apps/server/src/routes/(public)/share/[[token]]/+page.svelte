@@ -5,8 +5,10 @@
   import { Badge } from "#lib/components/ui/badge/index.js";
   import { GlobalState } from "#lib/global.svelte.js";
   import { SHARE_VIEW } from "#lib/routes.js";
+  import { TtySocket } from "#lib/tty-socket.js";
   import { formatTimeLeft } from "#lib/util.js";
   import type { TabInfo } from "@termcast/shared";
+  import { onMount } from "svelte";
 
   const globalState = GlobalState.get();
   const token = page.params.token;
@@ -25,6 +27,14 @@
   if (token) {
     globalState.connections[token] = { token, status: "connecting", shareTokens: [] };
   }
+  const socket = token ? new TtySocket(globalState, { role: "guest", token }) : undefined;
+
+  onMount(() => {
+    if (!socket || !token) return;
+    socket.setActive(token);
+    socket.connect();
+    return () => socket.close();
+  });
 
   let now = $state(Date.now());
   $effect(() => {
@@ -67,8 +77,8 @@
   {/if}
 
   <div class="relative min-h-0 flex-1">
-    {#if token}
-      <TtyView {tab} active />
+    {#if socket}
+      <TtyView {tab} active {socket} />
     {:else}
       <div class="text-muted-foreground my-8 text-center text-sm">
         This shared session link is missing its token.
