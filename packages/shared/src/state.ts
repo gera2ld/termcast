@@ -37,7 +37,6 @@ export const tabInfoSchema = z.object({
   args: z.string().array(),
   label: z.string().nullish(),
   status: z.enum(["active", "ended"]),
-  connections: z.number(),
   createdAt: z.string(),
   lastActivity: z.string(),
 });

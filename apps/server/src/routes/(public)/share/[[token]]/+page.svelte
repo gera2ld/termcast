@@ -19,7 +19,6 @@
     status: "active",
     commandId: null,
     args: [],
-    connections: 0,
     createdAt: "",
     lastActivity: "",
   };

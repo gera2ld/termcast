@@ -179,10 +179,6 @@ export class PtyHandler {
     this.destroyScheduler.timer = undefined;
   }
 
-  get connectionCount() {
-    return this.clients.size;
-  }
-
   get owner(): IPtySettings {
     return this.ownerSettings;
   }
@@ -398,10 +394,6 @@ export class Tab {
     return this.pty.isActive();
   }
 
-  get connectionCount() {
-    return this.pty.connectionCount;
-  }
-
   toInfo(): TabInfo {
     return {
       id: this.id,
@@ -409,7 +401,6 @@ export class Tab {
       args: this.args,
       label: this.commandId ? (getCommand(this.commandId)?.label ?? null) : null,
       status: this.isActive ? ("active" as const) : ("ended" as const),
-      connections: this.connectionCount,
       createdAt: new Date(this.createdAt).toISOString(),
       lastActivity: new Date(this.lastActivity).toISOString(),
     };

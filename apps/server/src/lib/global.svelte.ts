@@ -236,7 +236,6 @@ export class GlobalState {
       args: tab.args ?? [],
       label: tab.label ?? null,
       status: "active",
-      connections: 0,
       createdAt: new Date().toISOString(),
       lastActivity: new Date().toISOString(),
     };
