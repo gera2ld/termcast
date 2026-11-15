@@ -1,11 +1,9 @@
-set positional-arguments
-
 # List all available recipes
 default:
     just --list
 
-# Build the Docker image
-docker-build:
+# Build and push the Docker image
+docker-push:
     docker buildx build -f Dockerfile --platform linux/amd64 --provenance=false --sbom=false --push -t gera2ld/termcast .
 
 DATA_DIR := justfile_directory() + "/data"
@@ -57,5 +55,6 @@ ci: check test
 themes:
     cd apps/server && bun run themes
 
+[positional-arguments]
 cli *args:
     cd apps/cli && DATA_DIR="{{ DATA_DIR }}" bun run src/index.ts "$@"
